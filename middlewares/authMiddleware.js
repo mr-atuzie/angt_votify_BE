@@ -3,36 +3,25 @@ const asyncHandler = require("express-async-handler");
 
 // Middleware to protect routes that require authentication
 const protect = asyncHandler(async (req, res, next) => {
-  let token;
+  const token = req.cookies.token;
 
-  // Check for token in the request header
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    try {
-      // Get token from the header
-      token = req.headers.authorization.split(" ")[1];
+  if (!token) {
+    res.status(400);
+    throw new Error("Not authorized,no token");
+  }
 
-      // Verify the token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
+  jwt.verify(token, process.env.JWT_SECRET, async (err, data) => {
+    if (err) {
+      res.status(400);
+      throw new Error("Not authorized,invaid token");
+    } else {
       // Attach the user ID and role to the request object
-      req.userId = decoded.userId;
-      req.role = decoded.role;
+      req.userId = data.userId;
+      req.role = data.role;
 
       next();
-    } catch (error) {
-      res.status(401);
-      throw new Error("Not authorized, invalid token");
     }
-  }
-
-  // If no token, return an error
-  if (!token) {
-    res.status(401);
-    throw new Error("Not authorized, no token");
-  }
+  });
 });
 
 // Middleware to check if the user is an admin

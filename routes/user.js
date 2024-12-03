@@ -7,7 +7,7 @@ const {
   updateUserProfile,
   deleteUser,
 } = require("../controllers/user");
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../middlewares/authMiddleware");
 
 // Public routes
 router.post("/register", registerUser);
