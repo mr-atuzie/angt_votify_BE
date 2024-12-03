@@ -1,0 +1,92 @@
+const Election = require("../models/election");
+const asyncHandler = require("express-async-handler");
+
+// Create a new election
+const createElection = asyncHandler(async (req, res) => {
+  const {
+    electionName,
+    description,
+    startDate,
+    endDate,
+    electionType,
+    votingFormat,
+    candidates,
+  } = req.body;
+
+  // Check if election name already exists
+  const existingElection = await Election.findOne({ electionName });
+  if (existingElection) {
+    res.status(400);
+    throw new Error("Election name has already been taken");
+  }
+
+  const newElection = new Election({
+    electionName,
+    description,
+    startDate,
+    endDate,
+    electionType,
+    votingFormat,
+    candidates,
+  });
+
+  await newElection.save();
+  res
+    .status(201)
+    .json({ message: "Election created successfully", election: newElection });
+});
+
+// Get all elections
+const getAllElections = asyncHandler(async (req, res) => {
+  const elections = await Election.find();
+  res.status(200).json(elections);
+});
+
+// Get an election by ID
+const getElectionById = asyncHandler(async (req, res) => {
+  const election = await Election.findById(req.params.id);
+  if (!election) {
+    res.status(404);
+    throw new Error("Election not found");
+  }
+  res.status(200).json(election);
+});
+
+// Update an election by ID
+const updateElection = asyncHandler(async (req, res) => {
+  const updatedElection = await Election.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  );
+  if (!updatedElection) {
+    res.status(404);
+    throw new Error("Election not found");
+  }
+  res.status(200).json({
+    message: "Election updated successfully",
+    election: updatedElection,
+  });
+});
+
+// Close an election
+const closeElection = asyncHandler(async (req, res) => {
+  const election = await Election.findById(req.params.id);
+  if (!election) {
+    res.status(404);
+    throw new Error("Election not found");
+  }
+
+  election.status = "closed";
+  await election.save();
+  res.status(200).json({ message: "Election closed successfully", election });
+});
+
+// Export all controllers as an object
+module.exports = {
+  createElection,
+  getAllElections,
+  getElectionById,
+  updateElection,
+  closeElection,
+};
