@@ -112,7 +112,7 @@ const getUserDetails = asyncHandler(async (req, res) => {
 
 // Update user profile
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
+  const { fullName, email, password } = req.body;
 
   // Check if the user exists
   const user = await User.findById(req.userId);
@@ -124,11 +124,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   // Check if password is provided and hash it
   let updatedPassword = user.password;
   if (password) {
-    updatedPassword = await bcrypt.hash(password, 10);
+    const salt = await bcrypt.genSalt(10);
+    updatedPassword = await bcrypt.hash(password, salt);
   }
 
   // Update user details
-  user.username = username || user.username;
+  user.fullName = fullName || user.fullName;
   user.email = email || user.email;
   user.password = updatedPassword;
 
