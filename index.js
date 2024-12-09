@@ -8,12 +8,13 @@ const { errorHandler, notFound } = require("./middlewares/errorMiddleware");
 const connectDB = require("./config/db");
 
 const userRoutes = require("./routes/user");
+const electionRoutes = require("./routes/election");
 
 const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000"],
+    origin: ["https://2ruevote.netlify.app", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -22,6 +23,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/election", electionRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello world :)");

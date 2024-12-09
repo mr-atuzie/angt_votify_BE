@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const electionController = require("../controllers/election");
+const { protect } = require("../middlewares/authMiddleware");
 
 // Routes for elections
-router.post("/create", electionController.createElection);
-router.get("/", electionController.getAllElections);
-router.get("/:id", electionController.getElectionById);
-router.put("/:id", electionController.updateElection);
-router.put("/close/:id", electionController.closeElection);
+router.post("/create", protect, electionController.createElection);
+router.get("/", protect, electionController.getAllElections);
+router.get("/:id", protect, electionController.getElectionById);
+router.put("/:id", protect, electionController.updateElection);
+router.put("/close/:id", protect, electionController.closeElection);
 
 module.exports = router;

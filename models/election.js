@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const electionSchema = new mongoose.Schema(
   {
-    electionName: {
+    title: {
       type: String,
       required: true,
       trim: true,
@@ -10,7 +10,10 @@ const electionSchema = new mongoose.Schema(
     description: {
       type: String,
       required: true,
-      trim: true,
+    },
+    electionType: {
+      type: String,
+      required: true,
     },
     startDate: {
       type: Date,
@@ -20,28 +23,17 @@ const electionSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    electionType: {
-      type: String,
-      enum: ["single-choice", "multiple-choice", "ranked-choice"],
-      required: true,
-    },
-    votingFormat: {
-      type: String,
-      enum: ["public", "private", "confidential"],
-      required: true,
-    },
-    candidates: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Candidate", // Assuming you have a Candidate schema
-        required: true,
-      },
-    ],
     status: {
       type: String,
-      enum: ["active", "inactive", "closed"],
-      default: "active",
+      enum: ["Upcoming", "Ongoing", "Ended"],
+      default: "Upcoming",
     },
+    ballots: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ballot",
+      },
+    ],
   },
   { timestamps: true }
 );

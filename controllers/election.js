@@ -3,34 +3,30 @@ const asyncHandler = require("express-async-handler");
 
 // Create a new election
 const createElection = asyncHandler(async (req, res) => {
-  const {
-    electionName,
-    description,
-    startDate,
-    endDate,
-    electionType,
-    votingFormat,
-    candidates,
-  } = req.body;
+  const { title, description, startDate, endDate, electionType } = req.body;
+
+  if (!title || !description || !startDate || !endDate || !electionType) {
+    res.status(400);
+    throw new Error("Please enter all required fields");
+  }
 
   // Check if election name already exists
-  const existingElection = await Election.findOne({ electionName });
+  const existingElection = await Election.findOne({ title });
   if (existingElection) {
     res.status(400);
     throw new Error("Election name has already been taken");
   }
 
   const newElection = new Election({
-    electionName,
+    title,
     description,
     startDate,
     endDate,
     electionType,
-    votingFormat,
-    candidates,
   });
 
   await newElection.save();
+
   res
     .status(201)
     .json({ message: "Election created successfully", election: newElection });
