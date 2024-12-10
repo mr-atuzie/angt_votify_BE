@@ -10,4 +10,6 @@ router.get("/:id", protect, electionController.getElectionById);
 router.put("/:id", protect, electionController.updateElection);
 router.put("/close/:id", protect, electionController.closeElection);
 
+router.post("/create-ballot", protect, electionController.createElectionBallot);
+
 module.exports = router;

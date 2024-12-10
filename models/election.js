@@ -28,12 +28,16 @@ const electionSchema = new mongoose.Schema(
       enum: ["Upcoming", "Ongoing", "Ended"],
       default: "Upcoming",
     },
-    ballots: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Ballot",
-      },
-    ],
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    // ballots: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Ballot",
+    //   },
+    // ],
   },
   { timestamps: true }
 );

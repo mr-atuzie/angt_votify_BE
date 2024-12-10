@@ -1,40 +1,48 @@
-const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
+const User = require("../models/user");
+const jwt = require("jsonwebtoken");
 
-// Middleware to protect routes that require authentication
 const protect = asyncHandler(async (req, res, next) => {
-  const token = req.cookies.token;
+  try {
+    const token = req.cookies?.token;
 
-  if (!token) {
-    res.status(400);
-    throw new Error("Not authorized,no token");
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, async (err, data) => {
-    if (err) {
-      res.status(400);
-      throw new Error("Not authorized,invaid token");
-    } else {
-      // Attach the user ID and role to the request object
-      req.userId = data.userId;
-      // req.role = data.role;
-
-      next();
+    // Check if the token is present
+    if (!token) {
+      res.status(401);
+      throw new Error("Not authorized, please login");
     }
-  });
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Fetch the user based on the decoded token
+    const user = await User.findById(decoded.userId).select("-password");
+
+    if (!user) {
+      res.status(404); // Not Found
+      throw new Error("User not found");
+    }
+
+    // Attach the user to the request object for further use
+    req.user = user;
+
+    next(); // Pass control to the next middleware
+  } catch (error) {
+    console.error("Authentication Error:", error.message);
+
+    // Check for specific JWT errors
+    if (error.name === "TokenExpiredError") {
+      res.status(401);
+      throw new Error("Token has expired, please login again");
+    } else if (error.name === "JsonWebTokenError") {
+      res.status(401);
+      throw new Error("Invalid token, please login");
+    } else {
+      // Generic error response
+      res.status(500);
+      throw new Error("Authentication failed");
+    }
+  }
 });
 
-// Middleware to check if the user is an admin
-// const isAdmin = asyncHandler(async (req, res, next) => {
-//   // Check if the user has 'admin' role
-//   if (req.role !== "admin") {
-//     res.status(403); // Forbidden
-//     throw new Error("Access denied, admin only");
-//   }
-
-//   // Proceed if user is admin
-//   next();
-// });
-
-// Export the middleware
 module.exports = { protect };

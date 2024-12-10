@@ -1,3 +1,4 @@
+const Ballot = require("../models/ballot");
 const Election = require("../models/election");
 const asyncHandler = require("express-async-handler");
 
@@ -9,6 +10,8 @@ const createElection = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Please enter all required fields");
   }
+
+  const user = req.user._id;
 
   // Check if election name already exists
   const existingElection = await Election.findOne({ title });
@@ -23,6 +26,7 @@ const createElection = asyncHandler(async (req, res) => {
     startDate,
     endDate,
     electionType,
+    user,
   });
 
   await newElection.save();
@@ -78,6 +82,36 @@ const closeElection = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Election closed successfully", election });
 });
 
+// Create a new election
+const createElectionBallot = asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
+  const electionId = req.params;
+
+  if (!title || !description) {
+    res.status(400);
+    throw new Error("Please enter all required fields");
+  }
+
+  const user = req.userId;
+
+  // Check if election  exists
+  const existingElection = await Election.findOne({ _id: electionId });
+  if (!existingElection) {
+    res.status(400);
+    throw new Error("Invalid Operation");
+  }
+
+  const newBallot = new Ballot({
+    title,
+    description,
+    electionId,
+  });
+
+  await newBallot.save();
+
+  res.status(201).json({ ballot: newBallot });
+});
+
 // Export all controllers as an object
 module.exports = {
   createElection,
@@ -85,4 +119,6 @@ module.exports = {
   getElectionById,
   updateElection,
   closeElection,
+
+  createElectionBallot,
 };
