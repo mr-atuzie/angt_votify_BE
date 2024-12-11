@@ -10,6 +10,7 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/user");
 const electionRoutes = require("./routes/election");
 const ballotRoutes = require("./routes/ballot");
+const voterRoutes = require("./routes/voter");
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use(cookieParser());
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/election", electionRoutes);
 app.use("/api/v1/ballot", ballotRoutes);
+app.use("/api/v1/voter", voterRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello world :)");

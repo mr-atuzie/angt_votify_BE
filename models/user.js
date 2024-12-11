@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { v4: uuidv4 } = require("uuid");
 
 const userSchema = new mongoose.Schema(
   {
@@ -28,14 +29,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["admin", "voter"],
       default: "voter",
-    },
-    voterId: {
-      type: String,
-      unique: true,
-      sparse: true,
-      default: function () {
-        return this.role === "voter" ? `VOTER-${Date.now()}` : null;
-      },
     },
     isVerified: {
       type: Boolean,
