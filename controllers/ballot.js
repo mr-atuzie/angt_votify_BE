@@ -15,6 +15,7 @@ const createBallot = asyncHandler(async (req, res) => {
 
   // Check if election exists
   const election = await Election.findById(electionId);
+
   if (!election) {
     res.status(404);
     throw new Error("Election not found");
@@ -36,22 +37,29 @@ const createBallot = asyncHandler(async (req, res) => {
 
   await newBallot.save();
 
-  res
-    .status(201)
-    .json({ message: "Ballot created successfully", ballot: newBallot });
+  const newElection = await Election.findByIdAndUpdate(
+    electionId,
+    { $push: { ballots: newBallot._id } },
+    { new: true }
+  );
+
+  res.status(201).json({
+    message: "Ballot created successfully",
+    ballot: newBallot,
+    election: newElection,
+  });
 });
 
 // Get all ballots for a specific election
 const getBallotsByElection = asyncHandler(async (req, res) => {
   const { electionId } = req.params;
 
-  // Find ballots by electionId
-  const ballots = await Ballot.find({ electionId });
+  const ballots = await Ballot.find({ electionId }).populate("votingOptions");
 
-  if (!ballots || ballots.length === 0) {
-    res.status(404);
-    throw new Error("No ballots found for this election");
-  }
+  const populatedBallots = await Ballot.find({ electionId }).populate({
+    path: "votingOptions",
+    select: "name description image votes", // Fields to retrieve
+  });
 
   res.status(200).json(ballots);
 });
@@ -92,39 +100,48 @@ const updateBallot = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete a ballot
 const deleteBallot = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const deletedBallot = await Ballot.findByIdAndDelete(id);
+  // Find the ballot and its related voting options
+  const deletedBallot = await Ballot.findById(id).populate("votingOptions");
 
   if (!deletedBallot) {
     res.status(404);
     throw new Error("Ballot not found");
   }
 
+  // Delete the related voting options
+  await VotingOption.deleteMany({ _id: { $in: deletedBallot.votingOptions } });
+
+  await Election.updateMany({ ballots: id }, { $pull: { ballots: id } });
+
+  // Delete the ballot itself
+  await Ballot.findByIdAndDelete(id);
+
   res.status(200).json({
-    message: "Ballot deleted successfully",
-    ballot: deletedBallot,
+    message: "Ballot and its related voting options deleted successfully",
+    ballot: deletedBallot, // Send back the deleted ballot to update the state
   });
 });
 
-// Create a new voting option
 const createVotingOption = asyncHandler(async (req, res) => {
   const { name, description, image, ballotId } = req.body;
 
+  // Validate required fields
   if (!name || !image || !ballotId) {
     res.status(400);
     throw new Error("Please enter all required fields");
   }
 
-  // Check if the ballot exists
+  // Check if the Ballot exists
   const ballot = await Ballot.findById(ballotId);
   if (!ballot) {
     res.status(404);
     throw new Error("Ballot not found");
   }
 
+  // Create and save the new VotingOption
   const newVotingOption = new VotingOption({
     name,
     description,
@@ -132,11 +149,18 @@ const createVotingOption = asyncHandler(async (req, res) => {
     ballotId,
   });
 
-  await newVotingOption.save();
+  const savedVotingOption = await newVotingOption.save();
 
+  // Add the new VotingOption to the Ballot's votingOptions array
+  ballot.votingOptions.push(savedVotingOption._id);
+
+  // Save the updated Ballot
+  await ballot.save();
+
+  // Respond with the created VotingOption
   res.status(201).json({
     message: "Voting option created successfully",
-    votingOption: newVotingOption,
+    votingOption: savedVotingOption,
   });
 });
 
@@ -208,10 +232,25 @@ const deleteVotingOption = asyncHandler(async (req, res) => {
   });
 });
 
+const getBallotWithVotingOptions = asyncHandler(async (req, res) => {
+  const { ballotId } = req.params;
+
+  // Find ballot and populate its votingOptions
+  const ballot = await Ballot.findById(ballotId).populate("votingOptions");
+
+  if (!ballot) {
+    res.status(404);
+    throw new Error("Ballot not found");
+  }
+
+  res.status(200).json(ballot);
+});
+
 // Export all controllers as an object
 module.exports = {
   createBallot,
   getBallotsByElection,
+  getBallotWithVotingOptions,
   getBallotById,
   updateBallot,
   deleteBallot,

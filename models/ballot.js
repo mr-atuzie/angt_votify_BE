@@ -17,7 +17,7 @@ const ballotSchema = new Schema({
   },
   votingOptions: [
     {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "VotingOption",
     },
   ],

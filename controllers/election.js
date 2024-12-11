@@ -31,9 +31,11 @@ const createElection = asyncHandler(async (req, res) => {
 
   await newElection.save();
 
-  res
-    .status(201)
-    .json({ message: "Election created successfully", election: newElection });
+  res.status(201).json({
+    message: "Election created successfully",
+    election: newElection,
+    test: "123456789",
+  });
 });
 
 // Get all elections
@@ -45,6 +47,7 @@ const getAllElections = asyncHandler(async (req, res) => {
 // Get an election by ID
 const getElectionById = asyncHandler(async (req, res) => {
   const election = await Election.findById(req.params.id);
+
   if (!election) {
     res.status(404);
     throw new Error("Election not found");

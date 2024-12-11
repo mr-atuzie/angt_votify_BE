@@ -32,12 +32,12 @@ const electionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    // ballots: [
-    //   {
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     ref: "Ballot",
-    //   },
-    // ],
+    ballots: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ballot",
+      },
+    ],
   },
   { timestamps: true }
 );

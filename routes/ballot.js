@@ -21,7 +21,7 @@ router.delete("/:id", ballotController.deleteBallot);
 // routes for voting option
 
 // Route to create a new voting option
-router.post("/create", ballotController.createVotingOption);
+router.post("/create-ballot-option", ballotController.createVotingOption);
 
 // Route to get all voting options for a specific ballot
 router.get("/ballot/:ballotId", ballotController.getVotingOptionsByBallot);
