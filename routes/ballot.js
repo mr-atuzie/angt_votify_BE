@@ -13,7 +13,7 @@ router.get("/election/:electionId", ballotController.getBallotsByElection);
 router.get("/:id", ballotController.getBallotById);
 
 // Route to update a ballot by ID
-router.put("/:id", ballotController.updateBallot);
+router.patch("/:id", ballotController.updateBallot);
 
 // Route to delete a ballot by ID
 router.delete("/:id", ballotController.deleteBallot);
@@ -31,6 +31,9 @@ router.get("/:id", ballotController.getVotingOptionById);
 
 // Route to update a voting option by ID
 router.put("/:id", ballotController.updateVotingOption);
+
+// Route to update a voting option by ID
+router.put("/clearAllOptions/:id", ballotController.clearAllVotingOptions);
 
 // Route to delete a voting option by ID
 router.delete("/:id", ballotController.deleteVotingOption);

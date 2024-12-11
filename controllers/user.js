@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const Token = require("../models/token");
 const sendEmail = require("../utils/sendEmail");
+const Election = require("../models/election");
 
 const characters = "0123456789";
 // "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -218,10 +219,27 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "User account deleted successfully" });
 });
 
+const getElectionsByUser = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // Fetch elections created by the user
+  const elections = await Election.find({ user: userId }).sort("-createdAt");
+
+  // if (!elections.length) {
+  //   return res
+  //     .status(404)
+  //     .json({ message: "No elections found for this user" });
+  // }
+
+  res.status(200).json(elections);
+});
+
 module.exports = {
   registerUser,
   loginUser,
   getUserDetails,
   updateUserProfile,
   deleteUser,
+
+  getElectionsByUser,
 };

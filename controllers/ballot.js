@@ -88,6 +88,7 @@ const updateBallot = asyncHandler(async (req, res) => {
     { title, description, electionId },
     { new: true, runValidators: true }
   );
+  console.log("it is here");
 
   if (!updatedBallot) {
     res.status(404);
@@ -246,6 +247,30 @@ const getBallotWithVotingOptions = asyncHandler(async (req, res) => {
   res.status(200).json(ballot);
 });
 
+const clearAllVotingOptions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Find ballot and populate its votingOptions
+  const ballot = await Ballot.findById(id).populate("votingOptions");
+
+  if (!ballot) {
+    res.status(404);
+    throw new Error("Ballot not found");
+  }
+
+  // Find the ballot by ID and clear the voting options
+  const updatedBallot = await Ballot.findByIdAndUpdate(
+    id,
+    { $set: { votingOptions: [] } }, // Assuming 'votingOptions' is an array in your ballot
+    { new: true } // Return the updated document
+  );
+
+  res.status(200).json({
+    message: "Voting options cleared successfully",
+    ballot: updatedBallot,
+  });
+});
+
 // Export all controllers as an object
 module.exports = {
   createBallot,
@@ -260,4 +285,5 @@ module.exports = {
   getVotingOptionById,
   updateVotingOption,
   deleteVotingOption,
+  clearAllVotingOptions,
 };
