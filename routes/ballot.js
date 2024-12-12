@@ -27,10 +27,10 @@ router.post("/create-ballot-option", ballotController.createVotingOption);
 router.get("/ballot/:ballotId", ballotController.getVotingOptionsByBallot);
 
 // Route to get a single voting option by ID
-router.get("/:id", ballotController.getVotingOptionById);
+router.get("/voting-option/:id", ballotController.getVotingOptionById);
 
 // Route to update a voting option by ID
-router.put("/:id", ballotController.updateVotingOption);
+router.put("/voting-option/:id", ballotController.updateVotingOption);
 
 // Route to update a voting option by ID
 router.put("/clearAllOptions/:id", ballotController.clearAllVotingOptions);

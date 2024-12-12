@@ -9,9 +9,12 @@ const {
   updateVoter,
   deleteVoter,
   getVotersByElectionId,
+  createVoterAndSendSMS,
 } = require("../controllers/voter");
 
 router.post("/", protect, createVoter);
+router.post("/create-voter2", protect, createVoterAndSendSMS);
+
 router.get("/", protect, getVoters);
 router.get("/election/:electionId", protect, getVotersByElectionId);
 router.get("/:id", protect, getVoterById);

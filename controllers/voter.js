@@ -1,10 +1,9 @@
 const Voter = require("../models/voter");
 const asyncHandler = require("express-async-handler");
+const axios = require("axios");
 
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
-
-  console.log({ fullName, email, phone, electionId });
 
   // Check if the email already exists
   const existingVoter = await Voter.findOne({ email });
@@ -27,6 +26,101 @@ const createVoter = asyncHandler(async (req, res) => {
     message: "Voter created successfully",
     voter: newVoter,
   });
+});
+
+const createVoterAndSendSMS = asyncHandler(async (req, res) => {
+  const { fullName, email, phone, electionId } = req.body;
+
+  // console.log({ fullName, email, phone, electionId });
+
+  // Check if the email already exists
+  const existingVoter = await Voter.findOne({ email });
+
+  if (existingVoter) {
+    res.status(400);
+    throw new Error("A voter with this email already exists");
+  }
+
+  // Create a new voter instance
+  const newVoter = new Voter({
+    fullName,
+    email,
+    phone,
+    electionId,
+  });
+
+  // Save the voter to the database
+  await newVoter.save();
+
+  // Prepare the SMS content
+  const verificationMessage = `Hello ${newVoter.fullName}, your verification code is ${newVoter.verificationCode}. Use this code to verify your account.`;
+
+  // Send SMS via Termii
+  // to: "2348160853127",
+  //  to: newVoter.phone,
+  //from:  process.env.TERMINII_SMS_FROM,
+
+  // "https://BASE_URL/api/sms/send
+
+  try {
+    const response = await axios.post(
+      "https://v3.api.termii.com/api/sms/send",
+      {
+        to: "2349119276054",
+        from: "2ruevote", // Your sender name or number
+        sms: verificationMessage,
+        type: "plain",
+        channel: "generic",
+        api_key: process.env.TERMINII_API_KEY,
+      }
+    );
+
+    console.log("SMS Response:", response);
+  } catch (error) {
+    console.error(
+      "Error sending SMS:",
+      error.response ? error.response : error.message
+    );
+    // Optionally, you can choose to delete the voter if SMS sending fails
+    // await Voter.findByIdAndDelete(newVoter._id);
+    res.status(500);
+    throw new Error("Voter created but failed to send verification SMS");
+  }
+
+  res.status(201).json({
+    message: "Voter created successfully. Verification SMS sent.",
+    voter: newVoter,
+  });
+});
+
+// Verify voter
+const verifyVoter = asyncHandler(async (req, res) => {
+  const { voterId, verificationCode } = req.body;
+
+  // Find the voter by voterId
+  const voter = await Voter.findOne({ voterId });
+
+  if (!voter) {
+    res.status(404);
+    throw new Error("Voter not found");
+  }
+
+  if (voter.isVerified) {
+    res.status(400);
+    throw new Error("Voter is already verified");
+  }
+
+  if (voter.verificationCode !== verificationCode) {
+    res.status(400);
+    throw new Error("Invalid verification code");
+  }
+
+  // Update voter's verification status
+  voter.isVerified = true;
+  voter.verificationCode = undefined; // Remove the code after verification
+  await voter.save();
+
+  res.status(200).json({ message: "Voter verified successfully" });
 });
 
 const getVoters = asyncHandler(async (req, res) => {
@@ -98,4 +192,6 @@ module.exports = {
   updateVoter,
   deleteVoter,
   getVotersByElectionId,
+
+  createVoterAndSendSMS,
 };
