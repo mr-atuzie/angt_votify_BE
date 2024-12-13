@@ -234,6 +234,48 @@ const getElectionsByUser = asyncHandler(async (req, res) => {
   res.status(200).json(elections);
 });
 
+const userDashboard = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  // Total elections by user
+  const totalElections = await Election.countDocuments({ user: userId });
+
+  // Ongoing elections
+  const ongoingElections = await Election.countDocuments({
+    user: userId,
+    status: "Ongoing",
+  });
+
+  // Completed elections
+  const completedElections = await Election.countDocuments({
+    user: userId,
+    status: "Ended",
+  });
+
+  // Upcoming elections
+  const upcomingElections = await Election.countDocuments({
+    user: userId,
+    status: "Upcoming",
+  });
+
+  // Last 5 elections added by the user
+  const recentElections = await Election.find({ user: userId })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .select("title startDate endDate status _id");
+
+  // Total users (if applicable)
+  // const totalUsers = await User.countDocuments();
+
+  res.json({
+    totalElections,
+    ongoingElections,
+    completedElections,
+    upcomingElections,
+    recentElections,
+  });
+});
+
 module.exports = {
   registerUser,
   loginUser,
@@ -242,4 +284,5 @@ module.exports = {
   deleteUser,
 
   getElectionsByUser,
+  userDashboard,
 };

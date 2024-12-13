@@ -36,6 +36,6 @@ router.put("/voting-option/:id", ballotController.updateVotingOption);
 router.put("/clearAllOptions/:id", ballotController.clearAllVotingOptions);
 
 // Route to delete a voting option by ID
-router.delete("/:id", ballotController.deleteVotingOption);
+router.delete("/voting-option/:id", ballotController.deleteVotingOption);
 
 module.exports = router;

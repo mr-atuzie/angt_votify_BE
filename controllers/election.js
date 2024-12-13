@@ -1,6 +1,8 @@
 const Ballot = require("../models/ballot");
 const Election = require("../models/election");
 const asyncHandler = require("express-async-handler");
+const Voter = require("../models/voter");
+const moment = require("moment");
 
 // Create a new election
 const createElection = asyncHandler(async (req, res) => {
@@ -72,6 +74,21 @@ const updateElection = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteElection = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const election = await Election.findByIdAndDelete(id);
+
+  if (!election) {
+    res.status(404);
+    throw new Error("Voting option not found");
+  }
+
+  res.status(200).json({
+    message: "Voting option deleted successfully",
+  });
+});
+
 // Close an election
 const closeElection = asyncHandler(async (req, res) => {
   const election = await Election.findById(req.params.id);
@@ -115,6 +132,52 @@ const createElectionBallot = asyncHandler(async (req, res) => {
   res.status(201).json({ ballot: newBallot });
 });
 
+// Controller to get the total number of voters in an election
+const getTotalVoters = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400);
+    throw new Error("Election ID is required");
+  }
+
+  try {
+    const totalVoters = await Voter.countDocuments({ id });
+
+    res.status(200).json(totalVoters);
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to fetch the total number of voters");
+  }
+});
+
+// API to check if an election has started or ended
+
+const getElectionStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400);
+    throw new Error("Election ID is required");
+  }
+
+  // Fetch election details
+  const election = await Election.findById(id);
+
+  if (!election) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Election not found" });
+  }
+
+  const now = moment(); // Current time
+
+  const hasStarted = moment(election.startDate).isBefore(now);
+  const hasEnded = moment(election.endDate).isBefore(now);
+
+  res.status(200).json({ hasStarted, hasEnded, election });
+});
+
 // Export all controllers as an object
 module.exports = {
   createElection,
@@ -122,6 +185,9 @@ module.exports = {
   getElectionById,
   updateElection,
   closeElection,
+  deleteElection,
 
   createElectionBallot,
+  getTotalVoters,
+  getElectionStatus,
 };
