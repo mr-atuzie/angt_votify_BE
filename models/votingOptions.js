@@ -20,10 +20,12 @@ const votingOptionSchema = new mongoose.Schema(
       ref: "Ballot",
       required: true,
     },
-    votes: {
-      type: Number,
-      default: 0,
-    },
+    votes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Voter",
+      },
+    ],
   },
   {
     timestamps: true, // Add timestamps to track creation and updates

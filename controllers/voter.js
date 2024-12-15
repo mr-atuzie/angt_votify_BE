@@ -1,6 +1,9 @@
 const Voter = require("../models/voter");
 const asyncHandler = require("express-async-handler");
 const axios = require("axios");
+const Election = require("../models/election");
+const sendEmail = require("../utils/sendEmail");
+const VotingOption = require("../models/votingOptions");
 
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
@@ -26,6 +29,86 @@ const createVoter = asyncHandler(async (req, res) => {
     message: "Voter created successfully",
     voter: newVoter,
   });
+});
+
+const createVoterNew = asyncHandler(async (req, res) => {
+  const { fullName, email, phone, electionId } = req.body;
+
+  // Check if the email already exists
+  const existingVoter = await Voter.findOne({ email });
+
+  const election = await Election.findById(electionId);
+
+  if (!election) {
+    res.status(404);
+    throw new Error("Election not found");
+  }
+
+  if (existingVoter) {
+    res.status(400);
+    throw new Error("A voter with this email already exists");
+  }
+
+  // Generate unique voter code
+  // const voterCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  // Create the new voter
+  const newVoter = new Voter({
+    fullName,
+    email,
+    phone,
+    electionId,
+  });
+
+  await newVoter.save();
+
+  // Generate the voting link
+  const votingLink = `${process.env.CLIENT_URL}/voting/${electionId}/voter/${newVoter._id}/login`;
+
+  // Email content
+  const subject = `You're Registered to Vote in ${election.title} Election`;
+  const send_to = newVoter.email;
+  const send_from = process.env.EMAIL_USER;
+
+  const message = `
+    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+      <div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 5px; overflow: hidden;">
+        <div style="background-color: #4A90E2; padding: 20px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0;">Election Notification</h1>
+        </div>
+        <div style="padding: 20px;">
+          <p style="text-transform: capitalize;">Dear <strong>${fullName}</strong>,</p>
+          <p>Welcome to the <strong>${election.title} Election</strong>. Below are your voter credentials:</p>
+          <p><strong>Voter ID:</strong> ${newVoter.voterId}</p>
+          <p><strong>Voter Code:</strong> ${newVoter.verificationCode}</p>
+          <p style="margin: 20px 0; text-align: center;">
+            <a href="${votingLink}" 
+               style="display: inline-block; background-color: #4A90E2; color: #ffffff; padding: 12px 20px; font-size: 16px; text-decoration: none; border-radius: 5px;">
+              Go to Voting Portal
+            </a>
+          </p>
+          <p>If you have any questions, please contact the election organizer.</p>
+          <p>Best regards,<br>Election Team</p>
+        </div>
+        <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+          <p style="margin: 0;">&copy; 2024 Department of Medicine. All rights reserved.</p>
+        </div>
+      </div>
+    </body>`;
+
+  // Send email
+  try {
+    await sendEmail(subject, message, send_to, send_from);
+    res.status(201).json({
+      message: "Voter created and email sent successfully",
+      voter: newVoter,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500);
+    throw new Error("Email not sent. Please try again.");
+  }
 });
 
 const createVoterAndSendSMS = asyncHandler(async (req, res) => {
@@ -185,6 +268,110 @@ const getVotersByElectionId = asyncHandler(async (req, res) => {
   res.status(200).json({ voters });
 });
 
+const loginVoter = asyncHandler(async (req, res) => {
+  const { voterId, verificationCode, electionId } = req.body;
+
+  if (!voterId || !verificationCode) {
+    res.status(400);
+    throw new Error("Please provide both voter ID and voting code.");
+  }
+
+  // Normalize voterId: Check for prefix
+  const normalizedVoterId = voterId.startsWith("VOTER-")
+    ? voterId
+    : `VOTER-${voterId}`;
+
+  const partOfElection = await Voter.findOne({
+    voterId: normalizedVoterId,
+    electionId,
+  });
+
+  if (!partOfElection) {
+    res.status(400);
+    throw new Error("Voter  not registered for this election.");
+  }
+  console.log(normalizedVoterId);
+
+  // Find voter by normalized voterId and verificationCode
+  const voter = await Voter.findOne({
+    voterId: normalizedVoterId,
+    verificationCode,
+    electionId,
+  });
+
+  if (!voter) {
+    res.status(401);
+    throw new Error("Invalid voter ID or voting code.");
+  }
+
+  // // Check if the voter is verified (optional)
+  // if (!voter.isVerified) {
+  //   res.status(403);
+  //   throw new Error("Voter is not verified.");
+  // }
+
+  res.status(200).json({
+    message: "Login successful",
+    voter: {
+      id: voter._id,
+      fullName: voter.fullName,
+      email: voter.email,
+    },
+  });
+});
+
+// Cast Vote API
+const castVote = asyncHandler(async (req, res) => {
+  const { votingOptionId, voterId } = req.body;
+
+  // Validate IDs
+  if (!votingOptionId || !voterId) {
+    res.status(400);
+    throw new Error("Both votingOptionId and voterId are required.");
+  }
+
+  // Find the voting option
+  const votingOption = await VotingOption.findById(votingOptionId);
+  if (!votingOption) {
+    res.status(404);
+    throw new Error("Voting option not found.");
+  }
+
+  // Check if voter already exists in the votes array
+  if (votingOption.votes.includes(voterId)) {
+    res.status(400);
+    throw new Error("Voter has already voted for this option.");
+  }
+
+  // Optional: Ensure the voter exists in the system
+  const voter = await Voter.findById(voterId);
+  if (!voter) {
+    res.status(404);
+    throw new Error("Voter not found.");
+  }
+
+  // const optionsInBallot = await VotingOption.find({
+  //   ballotId: votingOption.ballotId,
+  // });
+
+  // const hasVoted = optionsInBallot.some((option) =>
+  //   option.votes.includes(voterId)
+  // );
+  // if (hasVoted) {
+  //   res.status(400);
+  //   throw new Error("Voter has already voted in this ballot.");
+  // }
+
+  // Add voter to the votes array
+  votingOption.votes.push(voterId);
+  await votingOption.save();
+
+  res.status(200).json({
+    message: "Vote cast successfully",
+    votingOption,
+  });
+});
+
 module.exports = {
   createVoter,
   getVoters,
@@ -194,4 +381,6 @@ module.exports = {
   getVotersByElectionId,
 
   createVoterAndSendSMS,
+  createVoterNew,
+  loginVoter,
 };

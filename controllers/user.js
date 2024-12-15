@@ -185,7 +185,34 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
 
   // Check if the user exists
-  const user = await User.findById(req.userId);
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  // Check if password is provided and hash it
+  // let updatedPassword = user.password;
+  // if (password) {
+  //   const salt = await bcrypt.genSalt(10);
+  //   updatedPassword = await bcrypt.hash(password, salt);
+  // }
+
+  // Update user details
+  user.fullName = fullName || user.fullName;
+  user.email = email || user.email;
+  // user.password = updatedPassword;
+
+  await user.save();
+  res.status(200).json({ message: "User profile updated successfully", user });
+});
+
+const updateUserPassword = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+
+  // Check if the user exists
+  const user = await User.findById(req.user._id);
+
   if (!user) {
     res.status(404);
     throw new Error("User not found");
@@ -199,12 +226,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 
   // Update user details
-  user.fullName = fullName || user.fullName;
-  user.email = email || user.email;
   user.password = updatedPassword;
 
   await user.save();
-  res.status(200).json({ message: "User profile updated successfully", user });
+  res.status(200).json({ message: "User password updated successfully", user });
 });
 
 // Delete user account
@@ -285,4 +310,5 @@ module.exports = {
 
   getElectionsByUser,
   userDashboard,
+  updateUserPassword,
 };
