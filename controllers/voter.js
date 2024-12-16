@@ -17,6 +17,8 @@ router.post("/upload-excel/:id", upload.single("file"), async (req, res) => {
   const filePath = req.file.path;
   const electionId = req.params.id;
 
+  console.log(electionId);
+
   try {
     // Read the uploaded file
     const workbook = xlsx.readFile(filePath);
