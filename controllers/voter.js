@@ -13,38 +13,42 @@ const fs = require("fs");
 const express = require("express");
 const router = express.Router();
 
-router.post("/upload-excel/:id", upload.single("file"), async (req, res) => {
-  const filePath = req.file.path;
-  const electionId = req.params.id;
+router.post(
+  "/api/upload-excel/:id",
+  upload.single("file"),
+  async (req, res) => {
+    const filePath = req.file.path;
+    const electionId = req.params.id;
 
-  console.log(electionId);
+    console.log(electionId);
 
-  try {
-    // Read the uploaded file
-    const workbook = xlsx.readFile(filePath);
-    const sheetName = workbook.SheetNames[0]; // Get the first sheet
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]); // Parse data to JSON
+    try {
+      // Read the uploaded file
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0]; // Get the first sheet
+      const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]); // Parse data to JSON
 
-    // Validate and save data to MongoDB
-    const voters = data.map((row) => ({
-      fullName: row.FullName,
-      email: row.Email,
-      phone: row.Phone,
-      electionId,
-    }));
+      // Validate and save data to MongoDB
+      const voters = data.map((row) => ({
+        fullName: row.FullName,
+        email: row.Email,
+        phone: row.Phone,
+        electionId,
+      }));
 
-    await Voter.insertMany(voters);
-    res
-      .status(201)
-      .json({ message: "Voters successfully added to the database." });
+      await Voter.insertMany(voters);
+      res
+        .status(201)
+        .json({ message: "Voters successfully added to the database." });
 
-    // Delete the uploaded file after processing
-    fs.unlinkSync(filePath);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to process the file" });
-    console.error(error);
+      // Delete the uploaded file after processing
+      fs.unlinkSync(filePath);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to process the file" });
+      console.error(error);
+    }
   }
-});
+);
 
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
