@@ -35,9 +35,6 @@ const createVoter = asyncHandler(async (req, res) => {
 const createVoterNew = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
 
-  // Check if the email already exists
-  const existingVoter = await Voter.findOne({ email });
-
   const election = await Election.findById(electionId);
 
   if (!election) {
@@ -45,9 +42,13 @@ const createVoterNew = asyncHandler(async (req, res) => {
     throw new Error("Election not found");
   }
 
+  // Check if a voter with the same email already exists for this election
+  const existingVoter = await Voter.findOne({ email, electionId });
   if (existingVoter) {
     res.status(400);
-    throw new Error("A voter with this email already exists");
+    throw new Error(
+      "A voter with this email is already registered for this election."
+    );
   }
 
   // Generate unique voter code
