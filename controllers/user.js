@@ -301,12 +301,44 @@ const userDashboard = asyncHandler(async (req, res) => {
   });
 });
 
+const loginStatus = asyncHandler(async (req, res) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.json(false);
+  }
+
+  //Verify token
+  const verified = jwt.verify(token, process.env.JWT_SECRET, (err, data) => {
+    if (err) {
+      res.json(false);
+    } else {
+      res.json(true);
+    }
+  });
+});
+
+const logout = asyncHandler(async (req, res) => {
+  res.cookie("token", "", {
+    path: "/",
+    httpOnly: true,
+    expires: new Date(0),
+    sameSite: "none",
+    secure: true,
+  });
+
+  res.status(200).json("Successfully Logged Out");
+});
+
 module.exports = {
   registerUser,
   loginUser,
   getUserDetails,
   updateUserProfile,
   deleteUser,
+
+  loginStatus,
+  logout,
 
   getElectionsByUser,
   userDashboard,

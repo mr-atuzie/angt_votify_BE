@@ -54,7 +54,9 @@ const createBallot = asyncHandler(async (req, res) => {
 const getBallotsByElection = asyncHandler(async (req, res) => {
   const { electionId } = req.params;
 
-  const ballots = await Ballot.find({ electionId }).populate("votingOptions");
+  const ballots = await Ballot.find({ electionId })
+    .populate("electionId")
+    .populate("votingOptions");
 
   const populatedBallots = await Ballot.find({ electionId }).populate({
     path: "votingOptions",

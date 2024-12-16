@@ -9,12 +9,18 @@ const {
   getElectionsByUser,
   userDashboard,
   updateUserPassword,
+  logout,
+  loginStatus,
 } = require("../controllers/user");
 const { protect } = require("../middlewares/authMiddleware");
 
 // Public routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+
+router.get("/logout", logout);
+
+router.get("/loginStatus", loginStatus);
 
 // Protected routes (must be authenticated)
 router.get("/profile", protect, getUserDetails);
