@@ -12,10 +12,13 @@ const {
   createVoterAndSendSMS,
   createVoterNew,
   loginVoter,
+  castVote,
 } = require("../controllers/voter");
 
 router.post("/", protect, createVoterNew);
 router.post("/create-voter2", protect, createVoterAndSendSMS);
+
+router.post("/cast-vote", castVote);
 
 router.get("/", protect, getVoters);
 router.get("/election/:electionId", protect, getVotersByElectionId);

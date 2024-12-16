@@ -16,7 +16,11 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["https://2ruevote.netlify.app", "http://localhost:3000"],
+    origin: [
+      "https://2ruevote.netlify.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
     credentials: true,
   })
 );

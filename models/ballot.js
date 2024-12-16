@@ -21,6 +21,12 @@ const ballotSchema = new Schema({
       ref: "VotingOption",
     },
   ],
+  voters: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Voter",
+    },
+  ],
 });
 
 const Ballot = mongoose.model("Ballot", ballotSchema);

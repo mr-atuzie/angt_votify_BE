@@ -4,6 +4,7 @@ const axios = require("axios");
 const Election = require("../models/election");
 const sendEmail = require("../utils/sendEmail");
 const VotingOption = require("../models/votingOptions");
+const Ballot = require("../models/ballot");
 
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
@@ -322,52 +323,56 @@ const loginVoter = asyncHandler(async (req, res) => {
 
 // Cast Vote API
 const castVote = asyncHandler(async (req, res) => {
-  const { votingOptionId, voterId } = req.body;
+  const { votingOptionId, voterId, ballotId } = req.body;
 
-  // Validate IDs
-  if (!votingOptionId || !voterId) {
+  // Validate input
+  if (!votingOptionId || !voterId || !ballotId) {
     res.status(400);
-    throw new Error("Both votingOptionId and voterId are required.");
+    throw new Error("Voting option ID, voter ID, and ballot ID are required.");
   }
 
-  // Find the voting option
-  const votingOption = await VotingOption.findById(votingOptionId);
+  // Fetch the ballot and voting option
+  const [ballot, votingOption, voter] = await Promise.all([
+    Ballot.findById(ballotId),
+    VotingOption.findById(votingOptionId),
+    Voter.findById(voterId),
+  ]);
+
+  // Validate existence
+  if (!ballot) {
+    res.status(404);
+    throw new Error("Ballot not found.");
+  }
   if (!votingOption) {
     res.status(404);
     throw new Error("Voting option not found.");
   }
-
-  // Check if voter already exists in the votes array
-  if (votingOption.votes.includes(voterId)) {
-    res.status(400);
-    throw new Error("Voter has already voted for this option.");
-  }
-
-  // Optional: Ensure the voter exists in the system
-  const voter = await Voter.findById(voterId);
   if (!voter) {
     res.status(404);
     throw new Error("Voter not found.");
   }
 
-  // const optionsInBallot = await VotingOption.find({
-  //   ballotId: votingOption.ballotId,
-  // });
+  // Ensure the voter hasn't already voted for this option
+  if (votingOption.votes.includes(voterId)) {
+    res.status(400);
+    throw new Error("Voter has already voted for this option.");
+  }
 
-  // const hasVoted = optionsInBallot.some((option) =>
-  //   option.votes.includes(voterId)
-  // );
-  // if (hasVoted) {
-  //   res.status(400);
-  //   throw new Error("Voter has already voted in this ballot.");
-  // }
+  // Optionally, ensure the voter hasn't voted in this ballot
+  if (ballot.voters.includes(voterId)) {
+    res.status(400);
+    throw new Error("Voter has already voted in this ballot.");
+  }
 
-  // Add voter to the votes array
+  // Record the vote
   votingOption.votes.push(voterId);
-  await votingOption.save();
+  ballot.voters.push(voterId);
 
+  await Promise.all([votingOption.save(), ballot.save()]);
+
+  // Respond with success
   res.status(200).json({
-    message: "Vote cast successfully",
+    message: "Vote cast successfully.",
     votingOption,
   });
 });
@@ -383,4 +388,5 @@ module.exports = {
   createVoterAndSendSMS,
   createVoterNew,
   loginVoter,
+  castVote,
 };
