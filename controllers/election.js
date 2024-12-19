@@ -175,7 +175,13 @@ const getElectionStatus = asyncHandler(async (req, res) => {
   const hasStarted = moment(election.startDate).isBefore(now);
   const hasEnded = moment(election.endDate).isBefore(now);
 
-  res.status(200).json({ hasStarted, hasEnded, election });
+  res.status(200).json({
+    hasStarted,
+    hasEnded,
+    election,
+    start: moment(election.startDate).format("MMM DD, YYYY hh:mm A"),
+    end: moment(election.endDate).format("MMM DD, YYYY hh:mm A"),
+  });
 });
 
 // Export all controllers as an object

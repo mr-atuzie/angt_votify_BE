@@ -5,6 +5,7 @@ const asyncHandler = require("express-async-handler");
 const Token = require("../models/token");
 const sendEmail = require("../utils/sendEmail");
 const Election = require("../models/election");
+const crypto = require("crypto");
 
 const characters = "0123456789";
 // "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -330,6 +331,146 @@ const logout = asyncHandler(async (req, res) => {
   res.status(200).json("Successfully Logged Out");
 });
 
+const forgetPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  // Validate Request
+  if (!email) {
+    res.status(400);
+    throw new Error("Please provide an email address.");
+  }
+
+  // Check if user exists
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found. Please sign up.");
+  }
+
+  // Generate Reset Token
+  let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
+
+  // Hash the token
+  const hashToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Save token details to DB
+  const tokenDoc = await Token.findOneAndUpdate(
+    { userId: user._id },
+    {
+      resetToken: hashToken,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 45 * (60 * 1000), // Token valid for 45 minutes
+    },
+    { upsert: true, new: true } // Create a new token document if none exists
+  );
+
+  // Reset Link
+  const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+  const currentYear = new Date().getFullYear(); // Dynamic year
+
+  // Email Message
+  const message = `<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+    <!-- Header -->
+    <tr>
+      <td align="center" style="padding: 20px 0;">
+        <h2 style="color: #333333; margin: 0;">Reset Your Password</h2>
+      </td>
+    </tr>
+    <!-- Body -->
+    <tr>
+      <td style="padding: 20px; color: #333333;">
+        <p style="margin: 0 0 20px;">Hello, <strong>${user.fullName}</strong>,</p>
+        <p style="margin: 0 0 20px;">We received a request to reset your password. Please click the button below to proceed:</p>
+        <p style="text-align: center;">
+          <a href="${resetLink}" target="_blank" style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #ffffff; background-color: #007BFF; border-radius: 5px; text-decoration: none;">Reset Password</a>
+        </p>
+        <p style="margin: 20px 0 0;">If you didn't request a password reset, please ignore this email or contact our support team.</p>
+        <p style="margin: 0;">Thank you,</p>
+        <p style="margin: 0;">The 2rueVote Team</p>
+      </td>
+    </tr>
+    <!-- Footer -->
+    <tr>
+      <td align="center" style="padding: 20px 0; color: #999999; font-size: 12px;">
+        <p style="margin: 0;">&copy; ${currentYear} 2rueVote</p>
+      </td>
+    </tr>
+  </table>
+</body>
+`;
+
+  const subject = "Password Reset Request";
+  const sendTo = email;
+  const sendFrom = process.env.EMAIL_USER;
+
+  // Send Email
+  try {
+    await sendEmail(subject, message, sendTo, sendFrom);
+    res.status(200).json({
+      message: "Password reset email sent successfully. Check your inbox.",
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Email could not be sent. Please try again later.");
+  }
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { resetToken } = req.params;
+  const { password } = req.body;
+
+  // Validate password length
+  if (!password || password.length < 6) {
+    res.status(400);
+    throw new Error("Password must be at least 6 characters long.");
+  }
+
+  // Hash the reset token
+  const hashToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Find the token in the database
+  const tokenDoc = await Token.findOne({
+    resetToken: hashToken,
+    expiresAt: { $gt: Date.now() }, // Ensure token is not expired
+  });
+
+  // Handle invalid or expired token
+  if (!tokenDoc) {
+    res.status(400);
+    throw new Error("Invalid or expired reset token.");
+  }
+
+  // Hash the new password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  // Update user password
+  const updatedUser = await User.findByIdAndUpdate(
+    tokenDoc.userId,
+    {
+      password: hashedPassword,
+    },
+    { new: true } // Return the updated document
+  );
+
+  // Remove token from database to prevent reuse
+  await Token.findByIdAndDelete(tokenDoc._id);
+
+  // Respond to the client
+  res.status(200).json({
+    message: "Password has been successfully updated.",
+    user: updatedUser._id,
+  });
+});
+
 module.exports = {
   registerUser,
   loginUser,
@@ -343,4 +484,7 @@ module.exports = {
   getElectionsByUser,
   userDashboard,
   updateUserPassword,
+
+  forgetPassword,
+  resetPassword,
 };

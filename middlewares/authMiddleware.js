@@ -40,7 +40,7 @@ const protect = asyncHandler(async (req, res, next) => {
     } else {
       // Generic error response
       res.status(500);
-      throw new Error("Authentication failed,Invalid token");
+      throw new Error("Session has expired, please login again");
     }
   }
 });
