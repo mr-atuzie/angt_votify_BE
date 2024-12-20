@@ -54,6 +54,26 @@ const getElectionById = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Election not found");
   }
+
+  const now = moment(); // Current time
+
+  const hasStarted = moment(election.startDate).isBefore(now);
+  const hasEnded = moment(election.endDate).isBefore(now);
+
+  // Determine the election status
+  let status = "Upcoming"; // Default status
+  if (hasStarted && !hasEnded) {
+    status = "Ongoing";
+  } else if (hasEnded) {
+    status = "Ended";
+  }
+
+  // Update the election status in the database
+  if (election.status !== status) {
+    election.status = status;
+    await election.save(); // Save changes to the database
+  }
+
   res.status(200).json(election);
 });
 

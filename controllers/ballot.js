@@ -273,6 +273,50 @@ const clearAllVotingOptions = asyncHandler(async (req, res) => {
   });
 });
 
+const getResults = asyncHandler(async (req, res) => {
+  const { electionId } = req.params;
+
+  try {
+    // Fetch ballots with election and voting options populated
+    const ballots = await Ballot.find({ electionId })
+      .populate("electionId")
+      .populate({
+        path: "votingOptions",
+        select: "name description image votes", // Fields to retrieve
+      });
+
+    // Add percentage calculations for voting options
+    const ballotsWithPercentages = ballots.map((ballot) => {
+      // Calculate the total votes for all options in the ballot
+      const totalVotes = ballot.votingOptions.reduce(
+        (sum, option) => sum + option.votes.length,
+        0
+      );
+
+      // Add percentage to each voting option
+      const votingOptionsWithPercentages = ballot.votingOptions.map(
+        (option) => ({
+          ...option._doc, // Spread other fields from the voting option
+          percentage:
+            totalVotes > 0
+              ? ((option.votes.length / totalVotes) * 100).toFixed(2)
+              : "0.00",
+        })
+      );
+
+      // Return ballot with calculated percentages
+      return {
+        ...ballot._doc, // Spread other fields from the ballot
+        votingOptions: votingOptionsWithPercentages,
+      };
+    });
+
+    res.status(200).json(ballotsWithPercentages);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error: Unable to fetch ballots." });
+  }
+});
+
 // Export all controllers as an object
 module.exports = {
   createBallot,
@@ -288,4 +332,6 @@ module.exports = {
   updateVotingOption,
   deleteVotingOption,
   clearAllVotingOptions,
+
+  getResults,
 };

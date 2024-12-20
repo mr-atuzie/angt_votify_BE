@@ -315,22 +315,25 @@ const getVotersByElectionId = asyncHandler(async (req, res) => {
 });
 
 const loginVoter = asyncHandler(async (req, res) => {
-  const { voterId, verificationCode, electionId } = req.body;
+  const { voterId, verificationCode, electionId, voterLoginId } = req.body;
 
-  if (!voterId || !verificationCode) {
+  if (!voterId || !verificationCode || !voterLoginId) {
     res.status(400);
     throw new Error("Please provide both voter ID and voting code.");
   }
 
   // Normalize voterId: Check for prefix
-  const normalizedVoterId = voterId.startsWith("VOTER-")
-    ? voterId
-    : `VOTER-${voterId}`;
+  const normalizedVoterId = voterLoginId.startsWith("VOTER-")
+    ? voterLoginId
+    : `VOTER-${voterLoginId}`;
 
   const partOfElection = await Voter.findOne({
+    _id: voterId,
     voterId: normalizedVoterId,
     electionId,
   });
+
+  console.log({ voterId, normalizedVoterId, electionId, voterLoginId });
 
   if (!partOfElection) {
     res.status(400);

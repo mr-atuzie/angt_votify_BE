@@ -9,6 +9,8 @@ router.post("/create-ballot", protect, ballotController.createBallot);
 // Route to get all ballots for a specific election
 router.get("/election/:electionId", ballotController.getBallotsByElection);
 
+router.get("/results/:electionId", ballotController.getResults);
+
 // Route to get a single ballot by ID
 router.get("/:id", ballotController.getBallotById);
 
