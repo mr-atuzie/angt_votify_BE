@@ -60,36 +60,51 @@ const createVoter = asyncHandler(async (req, res) => {
   // check the number of voters registered to election
   const electionVoters = await Voter.countDocuments({ electionId });
 
-  if (electionVoters >= voterLimit) {
-    res.status(403); // Not Found
-    throw new Error("Voters limit reached.");
-  }
+  console.log(electionVoters, voterLimit);
 
-  // Check if the email already exists
-  const existingVoter = await Voter.findOne({ email });
+  // if (electionVoters >= voterLimit) {
+  //   res.status(403); // Not Found
+  //   throw new Error("Voters limit reached.");
+  // }
 
-  if (existingVoter) {
-    res.status(400);
-    throw new Error("A voter with this email already exists");
-  }
+  // // Check if the email already exists
+  // const existingVoter = await Voter.findOne({ email });
 
-  const newVoter = new Voter({
-    fullName,
-    email,
-    phone,
-    electionId,
-  });
+  // if (existingVoter) {
+  //   res.status(400);
+  //   throw new Error("A voter with this email already exists");
+  // }
 
-  await newVoter.save();
+  // const newVoter = new Voter({
+  //   fullName,
+  //   email,
+  //   phone,
+  //   electionId,
+  // });
 
-  res.status(201).json({
-    message: "Voter created successfully",
-    voter: newVoter,
-  });
+  // await newVoter.save();
+
+  // res.status(201).json({
+  //   message: "Voter created successfully",
+  //   voter: newVoter,
+  // });
 });
 
 const createVoterNew = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
+  const user = req.user;
+
+  const { electionsAllowed, voterLimit } = user.subscription;
+
+  // check the number of voters registered to election
+  const electionVoters = await Voter.countDocuments({ electionId });
+
+  console.log(electionVoters, voterLimit);
+
+  if (electionVoters >= voterLimit) {
+    res.status(403); // Not Found
+    throw new Error("Voters limit reached.");
+  }
 
   const election = await Election.findById(electionId);
 
@@ -108,7 +123,7 @@ const createVoterNew = asyncHandler(async (req, res) => {
   }
 
   // Generate unique voter code
-  // const voterCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const voterCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   // Create the new voter
   const newVoter = new Voter({
@@ -142,7 +157,7 @@ const createVoterNew = asyncHandler(async (req, res) => {
           <p><strong>Voter ID:</strong> ${newVoter.voterId}</p>
           <p><strong>Voter Code:</strong> ${newVoter.verificationCode}</p>
           <p style="margin: 20px 0; text-align: center;">
-            <a href="${votingLink}" 
+            <a href="${votingLink}"
                style="display: inline-block; background-color: #4A90E2; color: #ffffff; padding: 12px 20px; font-size: 16px; text-decoration: none; border-radius: 5px;">
               Go to Voting Portal
             </a>
