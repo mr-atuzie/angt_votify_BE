@@ -288,7 +288,7 @@ const userDashboard = asyncHandler(async (req, res) => {
   const recentElections = await Election.find({ user: userId })
     .sort({ createdAt: -1 })
     .limit(5)
-    .select("title startDate endDate status _id");
+    .select("title startDate endDate status _id image");
 
   // Total users (if applicable)
   // const totalUsers = await User.countDocuments();

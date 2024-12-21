@@ -6,14 +6,27 @@ const moment = require("moment");
 
 // Create a new election
 const createElection = asyncHandler(async (req, res) => {
-  const { title, description, startDate, endDate, electionType } = req.body;
+  const { title, description, startDate, endDate, electionType, image } =
+    req.body;
 
   if (!title || !description || !startDate || !endDate || !electionType) {
     res.status(400);
     throw new Error("Please enter all required fields");
   }
 
-  const user = req.user._id;
+  const user = req.user;
+
+  const { electionsAllowed, voterLimit } = user.subscription;
+
+  const userElections = await Election.countDocuments({ user: user._id });
+
+  // console.log({ electionsAllowed, userElections, voterLimit });
+  // console.log(user);
+
+  if (userElections >= electionsAllowed) {
+    res.status(403); // Not Found
+    throw new Error("Election limit reached.");
+  }
 
   // Check if election name already exists
   const existingElection = await Election.findOne({ title });
@@ -24,6 +37,7 @@ const createElection = asyncHandler(async (req, res) => {
 
   const newElection = new Election({
     title,
+    image,
     description,
     startDate,
     endDate,
@@ -172,7 +186,6 @@ const getTotalVoters = asyncHandler(async (req, res) => {
 });
 
 // API to check if an election has started or ended
-
 const getElectionStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -194,6 +207,20 @@ const getElectionStatus = asyncHandler(async (req, res) => {
 
   const hasStarted = moment(election.startDate).isBefore(now);
   const hasEnded = moment(election.endDate).isBefore(now);
+
+  // Determine the election status
+  let status = "Upcoming"; // Default status
+  if (hasStarted && !hasEnded) {
+    status = "Ongoing";
+  } else if (hasEnded) {
+    status = "Ended";
+  }
+
+  // Update the election status in the database
+  if (election.status !== status) {
+    election.status = status;
+    await election.save(); // Save changes to the database
+  }
 
   res.status(200).json({
     hasStarted,

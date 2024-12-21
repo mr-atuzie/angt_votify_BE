@@ -7,6 +7,10 @@ const electionSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    image: {
+      type: String,
+      trim: true,
+    },
     description: {
       type: String,
       required: true,
@@ -36,6 +40,12 @@ const electionSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Ballot",
+      },
+    ],
+    voters: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Voter",
       },
     ],
   },

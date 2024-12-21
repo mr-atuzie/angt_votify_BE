@@ -53,6 +53,18 @@ router.post(
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
 
+  const user = req.user._id;
+
+  const { electionsAllowed, voterLimit } = user.subscription;
+
+  // check the number of voters registered to election
+  const electionVoters = await Voter.countDocuments({ electionId });
+
+  if (electionVoters >= voterLimit) {
+    res.status(403); // Not Found
+    throw new Error("Voters limit reached.");
+  }
+
   // Check if the email already exists
   const existingVoter = await Voter.findOne({ email });
 
@@ -107,6 +119,8 @@ const createVoterNew = asyncHandler(async (req, res) => {
   });
 
   await newVoter.save();
+
+  election.voters.push(newVoter._id);
 
   // Generate the voting link
   const votingLink = `${process.env.CLIENT_URL}/voting/${electionId}/voter/${newVoter._id}/login`;
