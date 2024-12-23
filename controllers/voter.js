@@ -94,12 +94,10 @@ const createVoterNew = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
   const user = req.user;
 
-  const { electionsAllowed, voterLimit } = user.subscription;
+  const { voterLimit } = user.subscription;
 
   // check the number of voters registered to election
   const electionVoters = await Voter.countDocuments({ electionId });
-
-  console.log(electionVoters, voterLimit);
 
   if (electionVoters >= voterLimit) {
     res.status(403); // Not Found

@@ -245,6 +245,33 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "User account deleted successfully" });
 });
 
+// Subscribe
+const subscribe = asyncHandler(async (req, res) => {
+  const { subscriptionPlan } = req.body;
+
+  console.log(subscriptionPlan);
+  console.log(req.body);
+
+  if (!subscriptionPlan) {
+    res.status(400);
+    throw new Error("Please select a plan");
+  }
+
+  // Check if the user exists
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  // Update user details
+  user.subscription = subscriptionPlan;
+
+  await user.save();
+  res.status(200).json({ message: "User profile updated successfully", user });
+});
+
 const getElectionsByUser = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
@@ -480,6 +507,8 @@ module.exports = {
 
   loginStatus,
   logout,
+
+  subscribe,
 
   getElectionsByUser,
   userDashboard,

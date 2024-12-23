@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: [true, "Please ente your phone number"] },
     subscription: {
       tier: { type: String, default: "Free" }, // "Free", "Tier1", "Tier2", "Custom"
-      voterLimit: { type: Number, default: 3 }, // Default for Free Tier
+      voterLimit: { type: Number, default: 15 }, // Default for Free Tier
       electionsAllowed: { type: Number, default: 3 }, // Default for Free Tier
       startDate: { type: Date, default: Date.now },
       endDate: { type: Date }, // Set for paid tiers

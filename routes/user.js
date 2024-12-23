@@ -13,6 +13,7 @@ const {
   loginStatus,
   forgetPassword,
   resetPassword,
+  subscribe,
 } = require("../controllers/user");
 const { protect } = require("../middlewares/authMiddleware");
 
@@ -31,6 +32,8 @@ router.get("/profile", protect, getUserDetails);
 router.put("/profile", protect, updateUserProfile);
 router.put("/profile/change-password", protect, updateUserPassword);
 router.delete("/profile", protect, deleteUser);
+
+router.patch("/subscribe", protect, subscribe);
 
 router.get("/election", protect, getElectionsByUser);
 
