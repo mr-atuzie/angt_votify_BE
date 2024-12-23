@@ -20,12 +20,14 @@ const createElection = asyncHandler(async (req, res) => {
 
   const userElections = await Election.countDocuments({ user: user._id });
 
+  console.log({ electionsAllowed, userElections });
+
   // console.log({ electionsAllowed, userElections, voterLimit });
   // console.log(user);
 
   if (userElections >= electionsAllowed) {
     res.status(403); // Not Found
-    throw new Error("Election limit reached.");
+    throw new Error("Election limit reached. please subscribe");
   }
 
   // Check if election name already exists
