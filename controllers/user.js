@@ -249,9 +249,6 @@ const deleteUser = asyncHandler(async (req, res) => {
 const subscribe = asyncHandler(async (req, res) => {
   const { subscriptionPlan } = req.body;
 
-  console.log(subscriptionPlan);
-  console.log(req.body);
-
   if (!subscriptionPlan) {
     res.status(400);
     throw new Error("Please select a plan");
