@@ -24,6 +24,8 @@ function generateString(length) {
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, password, phone } = req.body;
 
+  console.log(req.boby);
+
   if (!fullName || !email || !password || !phone) {
     res.status(400);
     throw new Error("Please enter all required fields");
