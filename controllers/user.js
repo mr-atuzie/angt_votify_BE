@@ -22,11 +22,11 @@ function generateString(length) {
 
 // Register a new user
 const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, email, password, phone } = req.body;
+  const { name, email, password, phone } = req.body;
 
-  console.log(req.boby);
+  console.log({ name, email, phone, password });
 
-  if (!fullName || !email || !password || !phone) {
+  if (!name || !email || !password || !phone) {
     res.status(400);
     throw new Error("Please enter all required fields");
   }
@@ -44,7 +44,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // Create a new user
   const newUser = await User.create({
-    fullName,
+    name,
     email,
     password: hashedPassword,
     phone,
@@ -65,13 +65,10 @@ const registerUser = asyncHandler(async (req, res) => {
       secure: true,
     });
 
-    console.log("new engine");
-
     const subject = "Verify your Email";
     const send_to = newUser.email;
     const send_from = process.env.EMAIL_USER;
     const verificationCode = generateString(7);
-    // const verificationMessage = VerifyEmail(newUser.fullName, verificationCode);
 
     const hashedCode = await bcrypt.hash(verificationCode, salt);
 
@@ -97,7 +94,7 @@ const registerUser = asyncHandler(async (req, res) => {
                 <h1 style="margin: 0;">Welcome!</h1>
             </div>
             <div style="padding: 20px;">
-                <p style="text-transform: capitalize;">Hi <strong>${newUser.fullName}</strong>,</p>
+                <p style="text-transform: capitalize;">Hi <strong>${newUser?.name}</strong>,</p>
                 <p> Please use the following verification code to complete your sign-up process:</p>
                 <p style="font-size: 20px; font-weight: bold; text-align: center; margin: 20px 0;">${verificationCode}</p>
                 <p>If you did not request this code, please ignore this email.</p>
@@ -113,10 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
       await sendEmail(subject, message, send_to, send_from);
       res.status(201).json({
         newUser,
-        token,
         msg: "Email has been sent",
-        verificationCode,
-        newToken,
       });
     } catch (error) {
       res.status(500);

@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const userSchema = new mongoose.Schema(
   {
-    fullName: {
+    name: {
       type: String,
       required: [true, "Please enetr yor fullname"],
       trim: true,
