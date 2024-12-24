@@ -53,14 +53,14 @@ const registerUser = asyncHandler(async (req, res) => {
   if (newUser) {
     // Generate JWT token with 1-hour expiration
     const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h", // Set JWT token to expire in 1 hour
+      expiresIn: "5h", // Set JWT token to expire in 1 hour
     });
 
     // Set the cookie to expire in 1 hour
     res.cookie("token", token, {
       path: "/",
       httpOnly: true,
-      expires: new Date(Date.now() + 1000 * 60 * 60), // 1 hour in milliseconds
+      expires: new Date(Date.now() + 5000 * 60 * 60), // 1 hour in milliseconds
       sameSite: "none",
       secure: true,
     });
@@ -144,14 +144,14 @@ const loginUser = asyncHandler(async (req, res) => {
   if (user) {
     // Generate JWT token with 1-hour expiration
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h", // Set JWT token to expire in 1 hour
+      expiresIn: "5h", // Set JWT token to expire in 1 hour
     });
 
     // Set the cookie to expire in 1 hour
     res.cookie("token", token, {
       path: "/",
       httpOnly: true,
-      expires: new Date(Date.now() + 1000 * 60 * 60), // 1 hour in milliseconds
+      expires: new Date(Date.now() + 5000 * 60 * 60), // 1 hour in milliseconds
       sameSite: "none",
       secure: true,
     });
