@@ -5,50 +5,47 @@ const Election = require("../models/election");
 const sendEmail = require("../utils/sendEmail");
 const VotingOption = require("../models/votingOptions");
 const Ballot = require("../models/ballot");
-const multer = require("multer");
-const upload = multer({ dest: "uploads/" }); // Upload files to 'uploads' folder
 const xlsx = require("xlsx");
+const multer = require("multer");
+const path = require("path");
 const fs = require("fs");
 
-const express = require("express");
-const router = express.Router();
+// router.post(
+//   "/api/upload-excel/:id",
+//   upload.single("file"),
+//   async (req, res) => {
+//     const filePath = req.file.path;
+//     const electionId = req.params.id;
 
-router.post(
-  "/api/upload-excel/:id",
-  upload.single("file"),
-  async (req, res) => {
-    const filePath = req.file.path;
-    const electionId = req.params.id;
+//     console.log(electionId);
 
-    console.log(electionId);
+//     try {
+//       // Read the uploaded file
+//       const workbook = xlsx.readFile(filePath);
+//       const sheetName = workbook.SheetNames[0]; // Get the first sheet
+//       const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]); // Parse data to JSON
 
-    try {
-      // Read the uploaded file
-      const workbook = xlsx.readFile(filePath);
-      const sheetName = workbook.SheetNames[0]; // Get the first sheet
-      const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]); // Parse data to JSON
+//       // Validate and save data to MongoDB
+//       const voters = data.map((row) => ({
+//         fullName: row.FullName,
+//         email: row.Email,
+//         phone: row.Phone,
+//         electionId,
+//       }));
 
-      // Validate and save data to MongoDB
-      const voters = data.map((row) => ({
-        fullName: row.FullName,
-        email: row.Email,
-        phone: row.Phone,
-        electionId,
-      }));
+//       await Voter.insertMany(voters);
+//       res
+//         .status(201)
+//         .json({ message: "Voters successfully added to the database." });
 
-      await Voter.insertMany(voters);
-      res
-        .status(201)
-        .json({ message: "Voters successfully added to the database." });
-
-      // Delete the uploaded file after processing
-      fs.unlinkSync(filePath);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to process the file" });
-      console.error(error);
-    }
-  }
-);
+//       // Delete the uploaded file after processing
+//       fs.unlinkSync(filePath);
+//     } catch (error) {
+//       res.status(500).json({ error: "Failed to process the file" });
+//       console.error(error);
+//     }
+//   }
+// );
 
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
@@ -181,6 +178,92 @@ const createVoterNew = asyncHandler(async (req, res) => {
 
     res.status(500);
     throw new Error("Email not sent. Please try again.");
+  }
+});
+
+const addMultipleVoter = asyncHandler(async (req, res) => {
+  const { electionId } = req.params;
+  const user = req.user;
+
+  console.log(electionId);
+
+  try {
+    const filePath = req.file.path;
+    const ext = path.extname(req.file.originalname).toLowerCase();
+
+    console.log({ filePath, ext });
+
+    // Validate election
+    const election = await Election.findById(electionId);
+    if (!election) {
+      res.status(404);
+      throw new Error("Election not found");
+    }
+
+    const { voterLimit } = user.subscription;
+    const currentVoters = await Voter.countDocuments({ electionId });
+    if (currentVoters >= voterLimit) {
+      res.status(403);
+      throw new Error("Voter limit reached for this election.");
+    }
+
+    let sheetData;
+
+    // Handle file based on its extension
+    if (ext === ".csv") {
+      const csvData = fs.readFileSync(filePath, "utf-8");
+      sheetData = xlsx.utils.sheet_to_json(xlsx.utils.csv_to_sheet(csvData));
+    } else if (ext === ".xlsx" || ext === ".xls") {
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    } else {
+      return res.status(400).json({ message: "Unsupported file format" });
+    }
+
+    // Validate and add voters
+    const votersToAdd = [];
+    for (const row of sheetData) {
+      const { fullName, email, phone } = row;
+
+      // Skip invalid rows
+      if (!fullName || !email) continue;
+
+      const existingVoter = await Voter.findOne({ email, electionId });
+      if (existingVoter) {
+        continue; // Skip duplicate voters
+      }
+
+      // Create new voter object
+      const voterCode = Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
+      votersToAdd.push({
+        fullName,
+        email,
+        phone: phone || null,
+        electionId,
+        verificationCode: voterCode,
+      });
+    }
+
+    if (votersToAdd.length === 0) {
+      res.status(400);
+      throw new Error("No valid or new voters to upload.");
+    }
+
+    // Insert voters into the database
+    const voters = await Voter.insertMany(votersToAdd);
+
+    // Clean up uploaded file
+    fs.unlinkSync(filePath);
+
+    res.status(201).json({ message: "Voters uploaded successfully", voters });
+  } catch (error) {
+    // Clean up in case of error
+    if (req.file && req.file.path) fs.unlinkSync(req.file.path);
+    res.status(500).json({ message: "Error uploading voters", error });
   }
 });
 
@@ -464,4 +547,6 @@ module.exports = {
   createVoterNew,
   loginVoter,
   castVote,
+
+  addMultipleVoter,
 };
