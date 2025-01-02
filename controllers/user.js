@@ -24,8 +24,6 @@ function generateString(length) {
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
 
-  console.log({ name, email, phone, password });
-
   if (!name || !email || !password || !phone) {
     res.status(400);
     throw new Error("Please enter all required fields");
@@ -120,6 +118,36 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("unable to register user");
   }
+});
+
+//validate email
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { code } = req.body;
+
+  if (!code) {
+    res.status(400);
+    throw new Error("Please enter verification code");
+  }
+
+  const userToken = await Token.findOne({
+    userId: req.user._id,
+    expiresAt: { $gt: Date.now() },
+  });
+
+  if (!userToken) {
+    res.status(404);
+    throw new Error("Token has expired.");
+  }
+
+  //Validate password
+  const checkCode = await bcrypt.compare(code, userToken.token);
+
+  if (!checkCode) {
+    res.status(404);
+    throw new Error("Invalid Token");
+  }
+
+  res.status(200).json("Token validated successfully, login");
 });
 
 // Login user and return a JWT token

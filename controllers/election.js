@@ -178,12 +178,27 @@ const getTotalVoters = asyncHandler(async (req, res) => {
   }
 
   try {
-    const totalVoters = await Voter.countDocuments({ id });
+    // Get total voters for the given election ID
+    const totalVoters = await Voter.countDocuments({ electionId: id });
 
-    res.status(200).json(totalVoters);
+    // Get the count of verified voters
+    const verifiedVoters = await Voter.countDocuments({
+      electionId: id,
+      isVerified: true,
+    });
+
+    // Calculate the percentage of verified voters
+    const verifiedPercentage =
+      totalVoters > 0 ? ((verifiedVoters / totalVoters) * 100).toFixed(2) : 0;
+
+    // Return both total voters and verified percentage
+    res.status(200).json({
+      totalVoters,
+      verifiedPercentage: parseFloat(verifiedPercentage),
+    });
   } catch (error) {
     res.status(500);
-    throw new Error("Failed to fetch the total number of voters");
+    throw new Error("Failed to fetch voter data");
   }
 });
 

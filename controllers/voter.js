@@ -131,6 +131,7 @@ const createVoterNew = asyncHandler(async (req, res) => {
   await newVoter.save();
 
   election.voters.push(newVoter._id);
+  await election.save();
 
   // Generate the voting link
   const votingLink = `${process.env.CLIENT_URL}/voting/${electionId}/voter/${newVoter._id}/login`;
