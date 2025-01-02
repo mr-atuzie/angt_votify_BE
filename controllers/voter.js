@@ -443,8 +443,6 @@ const loginVoter = asyncHandler(async (req, res) => {
     electionId,
   });
 
-  console.log({ voterId, normalizedVoterId, electionId, voterLoginId });
-
   if (!partOfElection) {
     res.status(400);
     throw new Error("Voter  not registered for this election.");
@@ -525,8 +523,9 @@ const castVote = asyncHandler(async (req, res) => {
   // Record the vote
   votingOption.votes.push(voterId);
   ballot.voters.push(voterId);
+  voter.isVerified = true;
 
-  await Promise.all([votingOption.save(), ballot.save()]);
+  await Promise.all([votingOption.save(), ballot.save(), voter.save()]);
 
   // Respond with success
   res.status(200).json({
