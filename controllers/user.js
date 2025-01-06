@@ -66,7 +66,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const subject = "Verify your Email";
     const send_to = newUser.email;
     const send_from = process.env.EMAIL_USER;
-    const verificationCode = generateString(7);
+    const verificationCode = generateString(6);
 
     const hashedCode = await bcrypt.hash(verificationCode, salt);
 
@@ -85,24 +85,35 @@ const registerUser = asyncHandler(async (req, res) => {
       expiresAt: Date.now() + 15 * (60 * 1000),
     }).save();
 
-    const message = `
-             <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
-        <div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 5px; overflow: hidden;">
-            <div style="background-color: #FF5D2E; padding: 20px; text-align: center; color: #ffffff;">
-                <h1 style="margin: 0;">Welcome!</h1>
-            </div>
-            <div style="padding: 20px;">
-                <p style="text-transform: capitalize;">Hi <strong>${newUser?.name}</strong>,</p>
-                <p> Please use the following verification code to complete your sign-up process:</p>
-                <p style="font-size: 20px; font-weight: bold; text-align: center; margin: 20px 0;">${verificationCode}</p>
-                <p>If you did not request this code, please ignore this email.</p>
-                <p>Best regards,<br>Secure Auth</p>
-            </div>
-            <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
-                <p style="margin: 0;">&copy; 2024 Secure Auth. All rights reserved.</p>
-            </div>
-        </div>
-    </body>`;
+    const message = `<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    
+    <!-- Header Section -->
+    <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 24px;">Email Verification</h1>
+    </div>
+    
+    <!-- Content Section -->
+    <div style="padding: 20px; color: #333333;">
+      <p style="font-size: 16px; margin-bottom: 20px;">Hi <strong>${newUser?.name}</strong>,</p>
+      <p style="font-size: 16px;">Thank you for signing up! Please use the verification code below to complete your registration. This code will expire in <strong>15 minutes</strong>.</p>
+      
+      <p style="font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0; color: #1e40af;">${verificationCode}</p>
+      
+      <p style="font-size: 16px; margin-bottom: 20px;">If you didn’t request this email, you can safely ignore it.</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{verificationLink}}" style="display: inline-block; padding: 12px 24px; font-size: 16px; color: #ffffff; background-color: #1e40af; text-decoration: none; border-radius: 5px;">Verify Email</a>
+      </div>
+    </div>
+    
+    <!-- Footer Section -->
+    <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+      <p style="margin: 0; font-size: 12px;">&copy; 2024 Secure Auth. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+`;
 
     try {
       await sendEmail(subject, message, send_to, send_from);
