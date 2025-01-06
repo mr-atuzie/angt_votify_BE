@@ -158,7 +158,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     throw new Error("Invalid Token");
   }
 
-  res.status(200).json("Token validated successfully, login");
+  res.status(200).json("Email verified successfully");
 });
 
 // Login user and return a JWT token
@@ -541,6 +541,8 @@ module.exports = {
   logout,
 
   subscribe,
+
+  verifyEmail,
 
   getElectionsByUser,
   userDashboard,
