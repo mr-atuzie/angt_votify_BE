@@ -59,7 +59,7 @@ const createElection = asyncHandler(async (req, res) => {
   await newElection.save();
 
   const admin_MsgSubject = "New election was registered";
-  const admin_SendTo = " Idrisoluwabunmi@gmail.com";
+  const admin_SendTo = "Idrisoluwabunmi@gmail.com";
   const send_from = process.env.EMAIL_USER;
 
   const adminMessage = `<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
