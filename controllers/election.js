@@ -249,7 +249,8 @@ const getTotalVoters = asyncHandler(async (req, res) => {
     // Return both total voters and verified percentage
     res.status(200).json({
       totalVoters,
-      verifiedPercentage: parseFloat(verifiedPercentage),
+      // verifiedPercentage: parseFloat(verifiedPercentage),
+      verifiedPercentage: verifiedVoters,
     });
   } catch (error) {
     res.status(500);
