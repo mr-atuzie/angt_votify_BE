@@ -3,43 +3,52 @@ const Election = require("../models/election");
 const asyncHandler = require("express-async-handler");
 const Voter = require("../models/voter");
 const moment = require("moment");
+const sendEmail = require("../utils/sendEmail");
 
 // Create a new election
 const createElection = asyncHandler(async (req, res) => {
   const { title, description, startDate, endDate, electionType, image } =
     req.body;
 
+  // Validate required fields
   if (!title || !description || !startDate || !endDate || !electionType) {
     res.status(400);
     throw new Error("Please enter all required fields");
   }
 
-  const user = req.user;
-
-  const { electionsAllowed, voterLimit } = user.subscription;
-
-  const userElections = await Election.countDocuments({ user: user._id });
-
-  console.log({ electionsAllowed, userElections });
-
-  // console.log({ electionsAllowed, userElections, voterLimit });
-  // console.log(user);
-
-  if (userElections >= electionsAllowed) {
-    res.status(403); // Not Found
-    throw new Error("Election limit reached. please subscribe");
+  // Validate date range
+  if (new Date(startDate) >= new Date(endDate)) {
+    res.status(400);
+    throw new Error("The start date must be before the end date");
   }
 
-  // Check if election name already exists
+  const user = req.user;
+  const { electionsAllowed } = user.subscription;
+
+  // Validate subscription and election limits
+  const userElections = await Election.countDocuments({ user: user._id });
+
+  if (electionsAllowed === 0) {
+    res.status(403);
+    throw new Error("Please subscribe to create an election");
+  }
+
+  if (userElections >= electionsAllowed) {
+    res.status(403);
+    throw new Error("Election limit reached. Please upgrade your subscription");
+  }
+
+  // Check for duplicate election title
   const existingElection = await Election.findOne({ title });
   if (existingElection) {
     res.status(400);
-    throw new Error("Election name has already been taken");
+    throw new Error("Election title is already taken");
   }
 
+  // Create and save the new election
   const newElection = new Election({
     title,
-    image,
+    image: image || "default_image_url", // Set a default image if none provided
     description,
     startDate,
     endDate,
@@ -49,11 +58,57 @@ const createElection = asyncHandler(async (req, res) => {
 
   await newElection.save();
 
-  res.status(201).json({
-    message: "Election created successfully",
-    election: newElection,
-    test: "123456789",
-  });
+  const admin_MsgSubject = "New election was registered";
+  const admin_SendTo = " Idrisoluwabunmi@gmail.com";
+  const send_from = process.env.EMAIL_USER;
+
+  const adminMessage = `<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    
+    <!-- Header Section -->
+    <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 24px;">Election Registration</h1>
+    </div>
+    
+    <!-- Content Section -->
+    <div style="padding: 20px; color: #333333;">
+      <p style="font-size: 16px; margin-bottom: 20px;">Hello Admin,</p>
+      
+      <p style="font-size: 16px; margin-bottom: 20px;">A new election was created on the app. Here are the details:</p>
+      
+      <ul style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 20px; padding: 0;">
+        <li><strong>Election Title:</strong> ${title}</li>
+        <li><strong>Description:</strong> ${description}</li>
+        <li><strong>Start Date:</strong> ${moment(startDate).format(
+          "MMM DD, YYYY hh:mm A"
+        )}</li>
+        <li><strong>End Date:</strong> ${moment(endDate).format(
+          "MMM DD, YYYY hh:mm A"
+        )}</li>
+       
+      </ul>
+      
+      <p style="font-size: 16px;">Please verify the election information and take any necessary actions.</p>
+    </div>
+    
+    <!-- Footer Section -->
+    <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+      <p style="margin: 0; font-size: 12px;">&copy; 2024 Your App Name. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+`;
+
+  try {
+    await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
+    res.status(201).json({
+      message: "Election created successfully",
+      election: newElection,
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Email not sent , Please try Again.");
+  }
 });
 
 // Get all elections

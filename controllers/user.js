@@ -68,6 +68,9 @@ const registerUser = asyncHandler(async (req, res) => {
     const send_from = process.env.EMAIL_USER;
     const verificationCode = generateString(6);
 
+    const admin_MsgSubject = "A new user was registered";
+    const admin_SendTo = "Idrisoluwabunmi@gmail.com";
+
     const hashedCode = await bcrypt.hash(verificationCode, salt);
 
     //find and remove old token
@@ -115,8 +118,40 @@ const registerUser = asyncHandler(async (req, res) => {
 </body>
 `;
 
+    const adminMessage = `<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    
+    <!-- Header Section -->
+    <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 24px;">New User Registration</h1>
+    </div>
+    
+    <!-- Content Section -->
+    <div style="padding: 20px; color: #333333;">
+      <p style="font-size: 16px; margin-bottom: 20px;">Hello Admin,</p>
+      
+      <p style="font-size: 16px; margin-bottom: 20px;">A new user has registered on the app. Here are the details:</p>
+      
+      <ul style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 20px; padding: 0;">
+        <li><strong>Name:</strong> ${newUser?.name}</li>
+        <li><strong>Email:</strong> ${newUser?.email}</li>
+        <li><strong>Registration Date:</strong> ${new Date().toLocaleString()}</li>
+      </ul>
+      
+      <p style="font-size: 16px;">Please verify the user's information and take any necessary actions.</p>
+    </div>
+    
+    <!-- Footer Section -->
+    <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+      <p style="margin: 0; font-size: 12px;">&copy; 2024 Your App Name. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+`;
+
     try {
       await sendEmail(subject, message, send_to, send_from);
+      await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
       res.status(201).json({
         newUser,
         msg: "Email has been sent",
