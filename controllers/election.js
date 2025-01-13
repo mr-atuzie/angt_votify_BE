@@ -259,6 +259,98 @@ const getTotalVoters = asyncHandler(async (req, res) => {
 });
 
 // API to check if an election has started or ended
+// const getElectionStatus = asyncHandler(async (req, res) => {
+//   const { id } = req.params;
+
+//   if (!id) {
+//     res.status(400);
+//     throw new Error("Election ID is required");
+//   }
+
+//   // Fetch election details
+//   const election = await Election.findById(id);
+
+//   if (!election) {
+//     return res
+//       .status(404)
+//       .json({ success: false, message: "Election not found" });
+//   }
+
+//   const now = moment(); // Current time
+
+//   const hasStarted = moment(election.startDate).isBefore(now);
+//   const hasEnded = moment(election.endDate).isBefore(now);
+
+//   // Determine the election status
+//   let status = "Upcoming"; // Default status
+//   if (hasStarted && !hasEnded) {
+//     status = "Ongoing";
+//   } else if (hasEnded && ha) {
+//     status = "Ended";
+//   }
+
+//   // Update the election status in the database
+//   if (election.status !== status) {
+//     election.status = status;
+//     await election.save(); // Save changes to the database
+//   }
+
+//   res.status(200).json({
+//     hasStarted,
+//     hasEnded,
+//     election,
+//     start: moment(election.startDate).format("MMM DD, YYYY hh:mm A"),
+//     end: moment(election.endDate).format("MMM DD, YYYY hh:mm A"),
+//   });
+// });
+// const getElectionStatus = asyncHandler(async (req, res) => {
+//   const { id } = req.params;
+
+//   if (!id) {
+//     res.status(400);
+//     throw new Error("Election ID is required");
+//   }
+
+//   const election = await Election.findById(id);
+
+//   if (!election) {
+//     res.status(404);
+//     throw new Error("Election not found");
+
+//     // .json({
+//     //   success: false,
+//     //   message: "Election not found",
+//     // });
+//   }
+
+//   const now = moment(); // Current time
+//   const startDate = moment(election.startDate);
+//   const endDate = moment(election.endDate);
+
+//   const hasStarted = now.isSameOrAfter(startDate);
+//   const hasEnded = now.isAfter(endDate);
+
+//   let status = "Upcoming"; // Default status
+//   if (hasStarted && !hasEnded) {
+//     status = "Ongoing";
+//   } else if (hasEnded) {
+//     status = "Ended";
+//   }
+
+//   if (election.status !== status) {
+//     election.status = status;
+//     await election.save();
+//   }
+
+//   res.status(200).json({
+//     hasStarted,
+//     hasEnded,
+//     election,
+//     start: startDate.format("MMM DD, YYYY hh:mm A"),
+//     end: endDate.format("MMM DD, YYYY hh:mm A"),
+//   });
+// });
+
 const getElectionStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -267,7 +359,6 @@ const getElectionStatus = asyncHandler(async (req, res) => {
     throw new Error("Election ID is required");
   }
 
-  // Fetch election details
   const election = await Election.findById(id);
 
   if (!election) {
@@ -276,31 +367,32 @@ const getElectionStatus = asyncHandler(async (req, res) => {
       .json({ success: false, message: "Election not found" });
   }
 
-  const now = moment(); // Current time
+  const now = moment();
+  const startDate = moment(election.startDate);
+  const endDate = moment(election.endDate);
 
-  const hasStarted = moment(election.startDate).isBefore(now);
-  const hasEnded = moment(election.endDate).isBefore(now);
+  // Update logic to ensure hasStarted is false if the election has ended
+  const hasStarted = now.isSameOrAfter(startDate) && now.isBefore(endDate);
+  const hasEnded = now.isSameOrAfter(endDate);
 
-  // Determine the election status
-  let status = "Upcoming"; // Default status
-  if (hasStarted && !hasEnded) {
+  let status = "Upcoming";
+  if (hasStarted) {
     status = "Ongoing";
   } else if (hasEnded) {
     status = "Ended";
   }
 
-  // Update the election status in the database
   if (election.status !== status) {
     election.status = status;
-    await election.save(); // Save changes to the database
+    await election.save();
   }
 
   res.status(200).json({
     hasStarted,
     hasEnded,
     election,
-    start: moment(election.startDate).format("MMM DD, YYYY hh:mm A"),
-    end: moment(election.endDate).format("MMM DD, YYYY hh:mm A"),
+    start: startDate.format("MMM DD, YYYY hh:mm A"),
+    end: endDate.format("MMM DD, YYYY hh:mm A"),
   });
 });
 
