@@ -317,7 +317,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 
 // Subscribe
 const subscribe = asyncHandler(async (req, res) => {
-  const { subscriptionPlan } = req.body;
+  const { subscriptionPlan, flutterwavePaymentReciept } = req.body;
 
   if (!subscriptionPlan) {
     res.status(400);
@@ -332,11 +332,60 @@ const subscribe = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  // Update user details
-  user.subscription = subscriptionPlan;
+  // Update user subscription details
+  user.subscription.electionsAllowed += subscriptionPlan.electionsAllowed;
+  user.subscription.voterLimit += subscriptionPlan.voterLimit;
+
+  const planType = subscriptionPlan.tier;
 
   await user.save();
-  res.status(200).json({ message: "User profile updated successfully", user });
+
+  // Send email with user and subscription info
+  const admin_MsgSubject = "Subscription Updated Successfully";
+  const admin_SendTo = "Idrisoluwabunmi@gmail.com";
+  const send_from = process.env.EMAIL_USER;
+
+  const adminMessage = `
+    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+      <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        <!-- Header Section -->
+        <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 24px;">Subscription Update</h1>
+        </div>
+        
+        <!-- Content Section -->
+        <div style="padding: 20px; color: #333333;">
+          <p style="font-size: 16px; margin-bottom: 20px;">Hello Admin,</p>
+          
+          <p style="font-size: 16px; margin-bottom: 20px;">A user has updated their subscription. Here are the details:</p>
+          
+          <ul style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 20px; padding: 0;">
+            <li><strong>User Name:</strong> ${user.name}</li>
+            <li><strong>Email:</strong> ${user.email}</li>
+            <li><strong>Plan Type:</strong> ${planType}</li>           
+            <li><strong>Flutterwave Ref:</strong> ${flutterwavePaymentReciept}</li>
+          </ul>
+          
+          <p style="font-size: 16px;">Please verify the subscription information and take any necessary actions.</p>
+        </div>
+        
+        <!-- Footer Section -->
+        <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+          <p style="margin: 0; font-size: 12px;">&copy; 2024 Your App Name. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+  `;
+
+  try {
+    await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
+    res
+      .status(200)
+      .json({ message: "User subscription updated successfully", user });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Email not sent. Please try again.");
+  }
 });
 
 const getElectionsByUser = asyncHandler(async (req, res) => {

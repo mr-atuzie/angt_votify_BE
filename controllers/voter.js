@@ -382,7 +382,7 @@ const getVoterById = asyncHandler(async (req, res) => {
 
 const updateVoter = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { fullName, phone, isVerified } = req.body;
+  // const { fullName, phone, email } = req.body;
 
   const voter = await Voter.findById(id);
   if (!voter) {
@@ -390,11 +390,16 @@ const updateVoter = asyncHandler(async (req, res) => {
     throw new Error("Voter not found");
   }
 
-  voter.fullName = fullName || voter.fullName;
-  voter.phone = phone || voter.phone;
-  voter.isVerified = isVerified !== undefined ? isVerified : voter.isVerified;
+  // voter.fullName = fullName || voter.fullName;
+  // voter.phone = phone || voter.phone;
+  // voter.email = email || voter.isVerified;
 
-  const updatedVoter = await voter.save();
+  const updatedVoter = await Voter.findByIdAndUpdate(voter._id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  // const updatedVoter = await voter.save();
   res
     .status(200)
     .json({ message: "Voter updated successfully", voter: updatedVoter });
