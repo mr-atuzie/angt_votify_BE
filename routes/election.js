@@ -11,6 +11,9 @@ router.get("/:id", protect, electionController.getElectionById);
 router.get("/:id/status", electionController.getElectionStatus);
 router.get("/:id/total", protect, electionController.getTotalVoters);
 
+router.post("/start-election/:id", protect, electionController.startElection);
+router.post("/end-election/:id", protect, electionController.endElection);
+
 router.put("/:id", protect, electionController.updateElection);
 router.put("/close/:id", protect, electionController.closeElection);
 

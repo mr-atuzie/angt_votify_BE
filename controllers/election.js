@@ -396,6 +396,77 @@ const getElectionStatus = asyncHandler(async (req, res) => {
   });
 });
 
+const startElection = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Fetch the election and populate necessary fields
+  const election = await Election.findById(id)
+    .populate("ballots")
+    .populate("voters");
+
+  if (!election) {
+    res.status(404);
+    throw new Error("Election not found");
+  }
+
+  // Ensure the election is not already ongoing or ended
+  if (election.status !== "Upcoming") {
+    res.status(400);
+    throw new Error(
+      `Cannot start election. Current status: ${election.status}`
+    );
+  }
+
+  // Validate presence of ballots and voters
+  if (election.ballots.length === 0) {
+    res.status(400);
+    throw new Error("Cannot start election without ballots.");
+  }
+
+  if (election.voters.length === 0) {
+    res.status(400);
+    throw new Error("Cannot start election without voters.");
+  }
+
+  // Update election status to 'Ongoing'
+  election.status = "Ongoing";
+  election.startDate = new Date();
+  await election.save();
+
+  res.status(200).json({
+    message: "Election started successfully.",
+    election,
+  });
+});
+
+const endElection = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Fetch the election by ID
+  const election = await Election.findById(id);
+
+  if (!election) {
+    res.status(404);
+    throw new Error("Election not found");
+  }
+
+  // Ensure the election is ongoing before ending it
+  if (election.status !== "Ongoing") {
+    res.status(400);
+    throw new Error(`Cannot end election. Current status: ${election.status}`);
+  }
+
+  // Update status to 'Ended'
+  election.status = "Ended";
+  election.endDate = new Date();
+  await election.save();
+
+  res.status(200).json({
+    message: "Election ended successfully.",
+    election,
+  });
+});
+
 // Export all controllers as an object
 module.exports = {
   createElection,
@@ -408,4 +479,7 @@ module.exports = {
   createElectionBallot,
   getTotalVoters,
   getElectionStatus,
+
+  startElection,
+  endElection,
 };

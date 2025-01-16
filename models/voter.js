@@ -58,7 +58,6 @@ const voterSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
       lowercase: true,
       trim: true,
       match: [
@@ -69,6 +68,8 @@ const voterSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: [true, "Please enter your phone number"],
+      trim: true,
+      // unique: true, // To avoid duplicate phone numbers
     },
     voterId: {
       type: String,
