@@ -10,43 +10,6 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// router.post(
-//   "/api/upload-excel/:id",
-//   upload.single("file"),
-//   async (req, res) => {
-//     const filePath = req.file.path;
-//     const electionId = req.params.id;
-
-//     console.log(electionId);
-
-//     try {
-//       // Read the uploaded file
-//       const workbook = xlsx.readFile(filePath);
-//       const sheetName = workbook.SheetNames[0]; // Get the first sheet
-//       const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]); // Parse data to JSON
-
-//       // Validate and save data to MongoDB
-//       const voters = data.map((row) => ({
-//         fullName: row.FullName,
-//         email: row.Email,
-//         phone: row.Phone,
-//         electionId,
-//       }));
-
-//       await Voter.insertMany(voters);
-//       res
-//         .status(201)
-//         .json({ message: "Voters successfully added to the database." });
-
-//       // Delete the uploaded file after processing
-//       fs.unlinkSync(filePath);
-//     } catch (error) {
-//       res.status(500).json({ error: "Failed to process the file" });
-//       console.error(error);
-//     }
-//   }
-// );
-
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
 
@@ -216,7 +179,7 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
       // For testing, use only the first 10 rows
-      sheetData = sheetData.slice(80, 100);
+      // sheetData = sheetData.slice(80, 100);
     } else {
       return res.status(400).json({ message: "Unsupported file format" });
     }
@@ -269,7 +232,7 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
     fs.unlinkSync(filePath);
 
     res.status(201).json({
-      message: voters.length + "voters uploaded successfully",
+      message: voters.length + " voters uploaded successfully",
       voters,
     });
   } catch (error) {

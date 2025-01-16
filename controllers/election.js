@@ -133,9 +133,7 @@ const getElectionById = asyncHandler(async (req, res) => {
 
   // Determine the election status
   let status = "Upcoming"; // Default status
-  if (hasStarted && !hasEnded) {
-    status = "Ongoing";
-  } else if (hasEnded) {
+  if (hasEnded) {
     status = "Ended";
   }
 
@@ -376,9 +374,7 @@ const getElectionStatus = asyncHandler(async (req, res) => {
   const hasEnded = now.isSameOrAfter(endDate);
 
   let status = "Upcoming";
-  if (hasStarted) {
-    status = "Ongoing";
-  } else if (hasEnded) {
+  if (hasEnded) {
     status = "Ended";
   }
 
