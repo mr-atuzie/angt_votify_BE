@@ -216,7 +216,7 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
       // For testing, use only the first 10 rows
-      sheetData = sheetData.slice(0, 10);
+      sheetData = sheetData.slice(80, 100);
     } else {
       return res.status(400).json({ message: "Unsupported file format" });
     }
@@ -268,15 +268,17 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
     // Clean up uploaded file
     fs.unlinkSync(filePath);
 
-    console.log(voters);
-
-    res.status(201).json({ message: "Voters uploaded successfully", voters });
+    res.status(201).json({
+      message: voters.length + "voters uploaded successfully",
+      voters,
+    });
   } catch (error) {
     // Clean up in case of error
     if (req.file && req.file.path) fs.unlinkSync(req.file.path);
-    res
-      .status(500)
-      .json({ message: "Error uploading voters", error: error.message });
+
+    console.log(error.message);
+
+    res.status(500).json({ message: error.message, error: error.message });
   }
 });
 
