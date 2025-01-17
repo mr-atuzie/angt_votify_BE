@@ -131,16 +131,9 @@ const getElectionById = asyncHandler(async (req, res) => {
   const hasStarted = moment(election.startDate).isBefore(now);
   const hasEnded = moment(election.endDate).isBefore(now);
 
-  // Determine the election status
-  let status = "Upcoming"; // Default status
   if (hasEnded) {
-    status = "Ended";
-  }
-
-  // Update the election status in the database
-  if (election.status !== status) {
-    election.status = status;
-    await election.save(); // Save changes to the database
+    election.status = "Ended";
+    await election.save();
   }
 
   res.status(200).json(election);
@@ -373,13 +366,9 @@ const getElectionStatus = asyncHandler(async (req, res) => {
   const hasStarted = now.isSameOrAfter(startDate) && now.isBefore(endDate);
   const hasEnded = now.isSameOrAfter(endDate);
 
-  let status = "Upcoming";
+  let status;
   if (hasEnded) {
-    status = "Ended";
-  }
-
-  if (election.status !== status) {
-    election.status = status;
+    election.status = "Ended";
     await election.save();
   }
 
@@ -422,7 +411,7 @@ const startElection = asyncHandler(async (req, res) => {
   }
 
   // Ensure the election is not already ongoing or ended
-  if (election.status !== "Upcoming") {
+  if (election.status === "Ended") {
     res.status(400);
     throw new Error(
       `Cannot start election. Current status: ${election.status}`
@@ -448,6 +437,7 @@ const startElection = asyncHandler(async (req, res) => {
   res.status(200).json({
     message: "Election started successfully.",
     election,
+    status: election.status,
   });
 });
 
