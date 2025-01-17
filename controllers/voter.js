@@ -228,6 +228,9 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
     // Insert voters into the database
     const voters = await Voter.insertMany(newVoters);
 
+    // election.voters.push(...voters.map((voter) => voter._id));
+    // await election.save();
+
     // Clean up uploaded file
     fs.unlinkSync(filePath);
 
