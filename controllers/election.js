@@ -405,6 +405,22 @@ const startElection = asyncHandler(async (req, res) => {
     throw new Error("Election not found");
   }
 
+  const user = req.user;
+  const { electionsAllowed } = user.subscription;
+
+  // Validate subscription and election limits
+  const userElections = await Election.countDocuments({ user: user._id });
+
+  if (electionsAllowed === 0) {
+    res.status(403);
+    throw new Error("Please subscribe to create an election");
+  }
+
+  if (userElections >= electionsAllowed) {
+    res.status(403);
+    throw new Error("Election limit reached. Please upgrade your subscription");
+  }
+
   // Ensure the election is not already ongoing or ended
   if (election.status !== "Upcoming") {
     res.status(400);
@@ -446,11 +462,15 @@ const endElection = asyncHandler(async (req, res) => {
     throw new Error("Election not found");
   }
 
+  console.log(id);
+
+  console.log(election);
+
   // Ensure the election is ongoing before ending it
-  if (election.status !== "Ongoing") {
-    res.status(400);
-    throw new Error(`Cannot end election. Current status: ${election.status}`);
-  }
+  // if (election.status !== "Ongoing") {
+  //   res.status(400);
+  //   throw new Error(`Cannot end election. Current status: ${election.status}`);
+  // }
 
   // Update status to 'Ended'
   election.status = "Ended";
