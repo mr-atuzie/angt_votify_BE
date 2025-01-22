@@ -363,6 +363,7 @@ const subscribe = asyncHandler(async (req, res) => {
             <li><strong>User Name:</strong> ${user.name}</li>
             <li><strong>Email:</strong> ${user.email}</li>
             <li><strong>Plan Type:</strong> ${planType}</li>           
+            <li><strong>Price:</strong> ${planType}</li>           
             <li><strong>Flutterwave Ref:</strong> ${flutterwavePaymentReciept}</li>
           </ul>
           

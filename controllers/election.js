@@ -372,6 +372,8 @@ const getElectionStatus = asyncHandler(async (req, res) => {
 
   if (election.status === "Upcoming") {
     hasStarted = false;
+  } else {
+    hasStarted = true;
   }
 
   if (hasEnded) {
