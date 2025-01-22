@@ -85,7 +85,8 @@ const createElection = asyncHandler(async (req, res) => {
         <li><strong>End Date:</strong> ${moment(endDate).format(
           "MMM DD, YYYY hh:mm A"
         )}</li>
-       
+       <li><strong>Created By:</strong> ${user.name}</li>
+       <li><strong>User Email:</strong> ${user.email}</li>
       </ul>
       
       <p style="font-size: 16px;">Please verify the election information and take any necessary actions.</p>
@@ -363,10 +364,16 @@ const getElectionStatus = asyncHandler(async (req, res) => {
   const endDate = moment(election.endDate);
 
   // Update logic to ensure hasStarted is false if the election has ended
-  const hasStarted = now.isSameOrAfter(startDate) && now.isBefore(endDate);
+  // const hasStarted = now.isSameOrAfter(startDate) && now.isBefore(endDate);
   const hasEnded = now.isSameOrAfter(endDate);
 
   let status;
+  let hasStarted;
+
+  if (election.status === "Upcoming") {
+    hasStarted = false;
+  }
+
   if (hasEnded) {
     election.status = "Ended";
     await election.save();

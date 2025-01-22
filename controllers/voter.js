@@ -145,108 +145,111 @@ const createVoterNew = asyncHandler(async (req, res) => {
   }
 });
 
-const addMultipleVoter = asyncHandler(async (req, res) => {
-  const { electionId } = req.params;
-  const user = req.user;
+// const addMultipleVoter = asyncHandler(async (req, res) => {
+//   const { electionId } = req.params;
+//   const user = req.user;
 
-  try {
-    const filePath = req.file.path;
-    const ext = path.extname(req.file.originalname).toLowerCase();
+//   try {
+//     const filePath = req.file.path;
+//     const ext = path.extname(req.file.originalname).toLowerCase();
 
-    // Validate election
-    const election = await Election.findById(electionId);
-    if (!election) {
-      res.status(404);
-      throw new Error("Election not found");
-    }
+//     // Validate election
+//     const election = await Election.findById(electionId);
+//     if (!election) {
+//       res.status(404);
+//       throw new Error("Election not found");
+//     }
 
-    const { voterLimit } = user.subscription;
-    const currentVoters = await Voter.countDocuments({ electionId });
-    if (currentVoters >= voterLimit) {
-      res.status(403);
-      throw new Error("Voter limit reached for this election.");
-    }
+//     const { voterLimit } = user.subscription;
+//     const currentVoters = await Voter.countDocuments({ electionId });
 
-    let sheetData;
+//     if (currentVoters >= voterLimit) {
+//       res.status(403);
+//       throw new Error("Voter limit reached for this election.");
+//     }
 
-    // Handle file based on its extension
-    if (ext === ".csv") {
-      const csvData = fs.readFileSync(filePath, "utf-8");
+//     let sheetData;
 
-      // Parse the CSV data into a JSON object
-      const workbook = xlsx.read(csvData, { type: "string" });
-      const sheetName = workbook.SheetNames[0]; // Get the first sheet
-      sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+//     // Handle file based on its extension
+//     if (ext === ".csv") {
+//       const csvData = fs.readFileSync(filePath, "utf-8");
 
-      // For testing, use only the first 10 rows
-      // sheetData = sheetData.slice(80, 100);
-    } else {
-      return res.status(400).json({ message: "Unsupported file format" });
-    }
+//       // Parse the CSV data into a JSON object
+//       const workbook = xlsx.read(csvData, { type: "string" });
+//       const sheetName = workbook.SheetNames[0]; // Get the first sheet
+//       sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // Normalize keys and validate data
-    const votersToAdd = sheetData
-      .map((row) => {
-        const name = row.name?.trim();
-        const phone = row.phone ? String(row.phone).trim() : null;
+//       // For testing, use only the first 10 rows
+//       // sheetData = sheetData.slice(80, 100);
+//     } else {
+//       return res.status(400).json({ message: "Unsupported file format" });
+//     }
 
-        // Skip invalid rows
-        if (!name || !phone) return null;
+//     // Normalize keys and validate data
+//     const votersToAdd = sheetData
+//       .map((row) => {
+//         const name = row.name?.trim();
+//         const phone = row.phone ? String(row.phone).trim() : null;
 
-        return {
-          fullName: name,
-          phone,
-          electionId,
-          verificationCode: Math.random()
-            .toString(36)
-            .substring(2, 8)
-            .toUpperCase(),
-        };
-      })
-      .filter(Boolean); // Remove null values
+//         // Skip invalid rows
+//         if (!name || !phone) return null;
 
-    if (votersToAdd.length === 0) {
-      res.status(400);
-      throw new Error("No valid or new voters to upload.");
-    }
+//         return {
+//           fullName: name,
+//           phone,
+//           electionId,
+//           verificationCode: Math.random()
+//             .toString(36)
+//             .substring(2, 8)
+//             .toUpperCase(),
+//         };
+//       })
+//       .filter(Boolean); // Remove null values
 
-    // Check for existing voters and filter duplicates by phone number
-    const existingVoterPhones = await Voter.find({
-      electionId,
-      phone: { $in: votersToAdd.map((voter) => voter.phone) },
-    }).distinct("phone");
+//     if (votersToAdd.length === 0) {
+//       res.status(400);
+//       throw new Error("No valid or new voters to upload.");
+//     }
 
-    const newVoters = votersToAdd.filter(
-      (voter) => !existingVoterPhones.includes(voter.phone)
-    );
+//     // Check for existing voters and filter duplicates by phone number
+//     const existingVoterPhones = await Voter.find({
+//       electionId,
+//       phone: { $in: votersToAdd.map((voter) => voter.phone) },
+//     }).distinct("phone");
 
-    if (newVoters.length === 0) {
-      res.status(400);
-      throw new Error("All voters in the file are already registered.");
-    }
+//     const newVoters = votersToAdd.filter(
+//       (voter) => !existingVoterPhones.includes(voter.phone)
+//     );
 
-    // Insert voters into the database
-    const voters = await Voter.insertMany(newVoters);
+//     if (newVoters.length === 0) {
+//       res.status(400);
+//       throw new Error("All voters in the file are already registered.");
+//     }
 
-    // election.voters.push(...voters.map((voter) => voter._id));
-    // await election.save();
+//     // Insert voters into the database
+//     const voters = await Voter.insertMany(newVoters);
 
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
+//     election.voters.push(...voters.map((voter) => voter._id));
+//     await election.save();
 
-    res.status(201).json({
-      message: voters.length + " voters uploaded successfully",
-      voters,
-    });
-  } catch (error) {
-    // Clean up in case of error
-    if (req.file && req.file.path) fs.unlinkSync(req.file.path);
+//     console.log("new engine");
 
-    console.log(error.message);
+//     // Clean up uploaded file
+//     fs.unlinkSync(filePath);
 
-    res.status(500).json({ message: error.message, error: error.message });
-  }
-});
+//     res.status(201).json({
+//       message: voters.length + " voters uploaded successfully",
+//       voters,
+//     });
+//   } catch (error) {
+//     // Clean up in case of error
+//     if (req.file && req.file.path) fs.unlinkSync(req.file.path);
+
+//     console.log(error.message);
+
+//     res.status(500).json({ message: error.message, error: error.message });
+//   }
+// });
 
 // const addMultipleVoter = asyncHandler(async (req, res) => {
 //   const { electionId } = req.params;
@@ -340,6 +343,110 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
 //     console.log(error);
 //   }
 // });
+
+const addMultipleVoter = asyncHandler(async (req, res) => {
+  const { electionId } = req.params;
+  const user = req.user;
+
+  try {
+    // Validate Election
+    const election = await Election.findById(electionId);
+    if (!election) {
+      return res.status(404).json({ message: "Election not found" });
+    }
+
+    // Check voter limit
+    const { voterLimit } = user.subscription;
+    const currentVoters = await Voter.countDocuments({ electionId });
+
+    console.log(voterLimit, currentVoters);
+
+    if (currentVoters >= voterLimit) {
+      return res
+        .status(403)
+        .json({ message: "Voter limit reached for this election" });
+    }
+
+    // File Validation
+    const filePath = req.file.path;
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (ext !== ".csv") {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ message: "Unsupported file format" });
+    }
+
+    // Parse CSV file
+    const csvData = fs.readFileSync(filePath, "utf-8");
+    const workbook = xlsx.read(csvData, { type: "string" });
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // Normalize keys and validate data
+    const votersToAdd = sheetData
+      .map((row) => {
+        const name = row.name?.trim();
+        const phone = row.phone ? String(row.phone).trim() : null;
+        if (!name || !phone) return null;
+        return {
+          fullName: name,
+          phone,
+          electionId,
+          verificationCode: Math.random()
+            .toString(36)
+            .substring(2, 8)
+            .toUpperCase(),
+        };
+      })
+      .filter(Boolean);
+
+    if (!votersToAdd.length) {
+      fs.unlinkSync(filePath);
+      return res
+        .status(400)
+        .json({ message: "No valid or new voters to upload." });
+    }
+
+    // Check for existing voters
+    const existingPhones = await Voter.find({
+      electionId,
+      phone: { $in: votersToAdd.map((voter) => voter.phone) },
+    }).distinct("phone");
+
+    const newVoters = votersToAdd.filter(
+      (voter) => !existingPhones.includes(voter.phone)
+    );
+
+    if (!newVoters.length) {
+      fs.unlinkSync(filePath);
+      return res
+        .status(400)
+        .json({ message: "All voters in the file are already registered." });
+    }
+
+    // Insert voters into the database
+    const createdVoters = await Voter.insertMany(newVoters);
+
+    // Update the election with voter IDs atomically
+    const voterIds = createdVoters.map((voter) => voter._id);
+    await Election.findByIdAndUpdate(
+      electionId,
+      { $addToSet: { voters: { $each: voterIds } } }, // Prevent duplicates
+      { new: true }
+    );
+
+    // Clean up the uploaded file
+    fs.unlinkSync(filePath);
+
+    res.status(201).json({
+      message: `${createdVoters.length} voters uploaded successfully`,
+      voters: createdVoters,
+    });
+  } catch (error) {
+    if (req.file?.path) fs.unlinkSync(req.file.path); // Cleanup on error
+    console.error(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 const createVoterAndSendSMS = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
