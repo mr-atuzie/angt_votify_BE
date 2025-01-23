@@ -337,6 +337,7 @@ const subscribe = asyncHandler(async (req, res) => {
   user.subscription.voterLimit += subscriptionPlan.voterLimit;
 
   const planType = subscriptionPlan.tier;
+  const planPrice = subscriptionPlan.amount;
 
   await user.save();
 
@@ -363,7 +364,7 @@ const subscribe = asyncHandler(async (req, res) => {
             <li><strong>User Name:</strong> ${user.name}</li>
             <li><strong>Email:</strong> ${user.email}</li>
             <li><strong>Plan Type:</strong> ${planType}</li>           
-            <li><strong>Price:</strong> ${planType}</li>           
+            <li><strong>Price:</strong> ${planPrice} USD</li>           
             <li><strong>Flutterwave Ref:</strong> ${flutterwavePaymentReciept}</li>
           </ul>
           
@@ -380,6 +381,7 @@ const subscribe = asyncHandler(async (req, res) => {
 
   try {
     await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
+
     res
       .status(200)
       .json({ message: "User subscription updated successfully", user });
