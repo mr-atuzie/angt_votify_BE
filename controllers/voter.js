@@ -59,10 +59,10 @@ const createVoterNew = asyncHandler(async (req, res) => {
   // check the number of voters registered to election
   const electionVoters = await Voter.countDocuments({ electionId });
 
-  if (electionVoters >= voterLimit) {
-    res.status(403); // Not Found
-    throw new Error("Voters limit reached.");
-  }
+  // if (electionVoters >= voterLimit) {
+  //   res.status(403); // Not Found
+  //   throw new Error("Voters limit reached.");
+  // }
 
   const election = await Election.findById(electionId);
 
