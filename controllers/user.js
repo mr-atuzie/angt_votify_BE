@@ -55,13 +55,13 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     // Set the cookie to expire in 1 hour
-    res.cookie("token", token, {
-      path: "/",
-      httpOnly: true,
-      // expires: new Date(Date.now() + 5000 * 60 * 60), // 1 hour in milliseconds
-      sameSite: "none",
-      secure: true,
-    });
+    // res.cookie("token", token, {
+    //   path: "/",
+    //   httpOnly: true,
+    //   expires: new Date(Date.now() + 5000 * 60 * 60), // 1 hour in milliseconds
+    //   sameSite: "none",
+    //   secure: true,
+    // });
 
     const subject = "Verify your Email";
     const send_to = newUser.email;
@@ -155,6 +155,7 @@ const registerUser = asyncHandler(async (req, res) => {
       res.status(201).json({
         newUser,
         msg: "Email has been sent",
+        token,
       });
     } catch (error) {
       res.status(500);
@@ -222,13 +223,13 @@ const loginUser = asyncHandler(async (req, res) => {
     });
 
     // Set the cookie to expire in 1 hour
-    res.cookie("token", token, {
-      path: "/",
-      httpOnly: true,
-      // expires: new Date(Date.now() + 5000 * 60 * 60), // 1 hour in milliseconds
-      sameSite: "none",
-      secure: true,
-    });
+    // res.cookie("token", token, {
+    //   path: "/",
+    //   httpOnly: true,
+    //   expires: new Date(Date.now() + 5000 * 60 * 60), // 1 hour in milliseconds
+    //   sameSite: "none",
+    //   secure: true,
+    // });
 
     res.status(201).json({ message: "Login successfully", user, token });
   } else {

@@ -38,7 +38,7 @@ router.get("/election/:electionId", protect, getVotersByElectionId);
 router.post("/login", loginVoter);
 
 router.get("/:id", getVoterById);
-router.put("/:id", updateVoter);
-router.delete("/:id", deleteVoter);
+router.put("/:id", protect, updateVoter);
+router.delete("/:id", protect, deleteVoter);
 
 module.exports = router;
