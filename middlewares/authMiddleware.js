@@ -34,7 +34,7 @@ const protect = asyncHandler(async (req, res, next) => {
     next();
   } catch (error) {
     res.status(401);
-    throw new Error("Invalid or expired token");
+    throw new Error("Not authorized");
   }
 });
 
