@@ -314,6 +314,30 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "User account deleted successfully" });
 });
 
+const searchUserByFullName = asyncHandler(async (req, res) => {
+  const { fullName } = req.query; // Get the full name from query parameters
+
+  if (!fullName) {
+    return res.status(400).json({ message: "Full name is required" });
+  }
+
+  try {
+    // Search for users whose fullName matches (case-insensitive)
+    const users = await User.find({
+      fullName: { $regex: new RegExp(fullName, "i") },
+    });
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "No users found" });
+    }
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error searching user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Subscribe
 const subscribe = asyncHandler(async (req, res) => {
   const { subscriptionPlan, flutterwavePaymentReciept } = req.body;
@@ -627,6 +651,8 @@ module.exports = {
   logout,
 
   subscribe,
+
+  searchUserByFullName,
 
   verifyEmail,
 

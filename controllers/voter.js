@@ -344,22 +344,122 @@ const createVoterNew = asyncHandler(async (req, res) => {
 //   }
 // });
 
+// const addMultipleVoter = asyncHandler(async (req, res) => {
+//   const { electionId } = req.params;
+//   const user = req.user;
+
+//   try {
+//     // Validate Election
+//     const election = await Election.findById(electionId);
+//     if (!election) {
+//       return res.status(404).json({ message: "Election not found" });
+//     }
+
+//     // Check voter limit
+//     const { voterLimit } = user.subscription;
+//     const currentVoters = await Voter.countDocuments({ electionId });
+
+//     console.log(voterLimit, currentVoters);
+
+//     if (currentVoters >= voterLimit) {
+//       return res
+//         .status(403)
+//         .json({ message: "Voter limit reached for this election" });
+//     }
+
+//     // File Validation
+//     const filePath = req.file.path;
+//     const ext = path.extname(req.file.originalname).toLowerCase();
+//     if (ext !== ".csv") {
+//       fs.unlinkSync(filePath);
+//       return res.status(400).json({ message: "Unsupported file format" });
+//     }
+
+//     // Parse CSV file
+//     const csvData = fs.readFileSync(filePath, "utf-8");
+//     const workbook = xlsx.read(csvData, { type: "string" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     // Normalize keys and validate data
+//     const votersToAdd = sheetData
+//       .map((row) => {
+//         const name = row.name?.trim();
+//         const phone = row.phone ? String(row.phone).trim() : null;
+//         if (!name || !phone) return null;
+//         return {
+//           fullName: name,
+//           phone,
+//           electionId,
+//           verificationCode: Math.random()
+//             .toString(36)
+//             .substring(2, 8)
+//             .toUpperCase(),
+//         };
+//       })
+//       .filter(Boolean);
+
+//     if (!votersToAdd.length) {
+//       fs.unlinkSync(filePath);
+//       return res
+//         .status(400)
+//         .json({ message: "No valid or new voters to upload." });
+//     }
+
+//     // Check for existing voters
+//     const existingPhones = await Voter.find({
+//       electionId,
+//       phone: { $in: votersToAdd.map((voter) => voter.phone) },
+//     }).distinct("phone");
+
+//     const newVoters = votersToAdd.filter(
+//       (voter) => !existingPhones.includes(voter.phone)
+//     );
+
+//     if (!newVoters.length) {
+//       fs.unlinkSync(filePath);
+//       return res
+//         .status(400)
+//         .json({ message: "All voters in the file are already registered." });
+//     }
+
+//     // Insert voters into the database
+//     const createdVoters = await Voter.insertMany(newVoters);
+
+//     // Update the election with voter IDs atomically
+//     const voterIds = createdVoters.map((voter) => voter._id);
+//     await Election.findByIdAndUpdate(
+//       electionId,
+//       { $addToSet: { voters: { $each: voterIds } } }, // Prevent duplicates
+//       { new: true }
+//     );
+
+//     // Clean up the uploaded file
+//     fs.unlinkSync(filePath);
+
+//     res.status(201).json({
+//       message: `${createdVoters.length} voters uploaded successfully`,
+//       voters: createdVoters,
+//     });
+//   } catch (error) {
+//     if (req.file?.path) fs.unlinkSync(req.file.path); // Cleanup on error
+//     console.error(error.message);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 const addMultipleVoter = asyncHandler(async (req, res) => {
   const { electionId } = req.params;
   const user = req.user;
 
   try {
-    // Validate Election
     const election = await Election.findById(electionId);
     if (!election) {
       return res.status(404).json({ message: "Election not found" });
     }
 
-    // Check voter limit
     const { voterLimit } = user.subscription;
     const currentVoters = await Voter.countDocuments({ electionId });
-
-    console.log(voterLimit, currentVoters);
 
     if (currentVoters >= voterLimit) {
       return res
@@ -367,7 +467,6 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
         .json({ message: "Voter limit reached for this election" });
     }
 
-    // File Validation
     const filePath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase();
     if (ext !== ".csv") {
@@ -375,21 +474,21 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Unsupported file format" });
     }
 
-    // Parse CSV file
     const csvData = fs.readFileSync(filePath, "utf-8");
     const workbook = xlsx.read(csvData, { type: "string" });
     const sheetName = workbook.SheetNames[0];
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // Normalize keys and validate data
     const votersToAdd = sheetData
       .map((row) => {
         const name = row.name?.trim();
         const phone = row.phone ? String(row.phone).trim() : null;
-        if (!name || !phone) return null;
+        const email = row.email ? row.email.trim() : null;
+        if (!name || !phone || !email) return null;
         return {
           fullName: name,
           phone,
+          email,
           electionId,
           verificationCode: Math.random()
             .toString(36)
@@ -406,14 +505,22 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
         .json({ message: "No valid or new voters to upload." });
     }
 
-    // Check for existing voters
-    const existingPhones = await Voter.find({
+    // Check for existing phone numbers and emails
+    const existingVoters = await Voter.find({
       electionId,
-      phone: { $in: votersToAdd.map((voter) => voter.phone) },
-    }).distinct("phone");
+      $or: [
+        { phone: { $in: votersToAdd.map((voter) => voter.phone) } },
+        { email: { $in: votersToAdd.map((voter) => voter.email) } },
+      ],
+    }).select("phone email");
+
+    const existingPhones = existingVoters.map((voter) => voter.phone);
+    const existingEmails = existingVoters.map((voter) => voter.email);
 
     const newVoters = votersToAdd.filter(
-      (voter) => !existingPhones.includes(voter.phone)
+      (voter) =>
+        !existingPhones.includes(voter.phone) &&
+        !existingEmails.includes(voter.email)
     );
 
     if (!newVoters.length) {
@@ -423,26 +530,63 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
         .json({ message: "All voters in the file are already registered." });
     }
 
-    // Insert voters into the database
     const createdVoters = await Voter.insertMany(newVoters);
 
-    // Update the election with voter IDs atomically
-    const voterIds = createdVoters.map((voter) => voter._id);
     await Election.findByIdAndUpdate(
       electionId,
-      { $addToSet: { voters: { $each: voterIds } } }, // Prevent duplicates
+      {
+        $addToSet: {
+          voters: { $each: createdVoters.map((voter) => voter._id) },
+        },
+      },
       { new: true }
     );
 
-    // Clean up the uploaded file
     fs.unlinkSync(filePath);
 
+    for (const newVoter of createdVoters) {
+      const votingLink = `${process.env.CLIENT_URL}/voting/${electionId}/voter/${newVoter._id}/login`;
+      const subject = `You're Registered to Vote in ${election.title} Election`;
+      const send_to = newVoter.email;
+      const send_from = process.env.EMAIL_USER;
+      const message = `
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+          <div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 5px; overflow: hidden;">
+            <div style="background-color: #4A90E2; padding: 20px; text-align: center; color: #ffffff;">
+              <h1 style="margin: 0;">Election Notification</h1>
+            </div>
+            <div style="padding: 20px;">
+              <p style="text-transform: capitalize;">Dear <strong>${newVoter.fullName}</strong>,</p>
+              <p>Welcome to the <strong>${election.title} Election</strong>. Below are your voter credentials:</p>
+              <p><strong>Voter ID:</strong> ${newVoter._id}</p>
+              <p><strong>Voter Code:</strong> ${newVoter.verificationCode}</p>
+              <p style="margin: 20px 0; text-align: center;">
+                <a href="${votingLink}" style="display: inline-block; background-color: #4A90E2; color: #ffffff; padding: 12px 20px; font-size: 16px; text-decoration: none; border-radius: 5px;">
+                  Go to Voting Portal
+                </a>
+              </p>
+              <p>If you have any questions, please contact the election organizer.</p>
+              <p>Best regards,<br>Election Team</p>
+            </div>
+            <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+              <p style="margin: 0;">&copy; 2024 Election System. All rights reserved.</p>
+            </div>
+          </div>
+        </body>`;
+
+      try {
+        await sendEmail(subject, message, send_to, send_from);
+      } catch (error) {
+        console.log(`Failed to send email to ${send_to}:`, error);
+      }
+    }
+
     res.status(201).json({
-      message: `${createdVoters.length} voters uploaded successfully`,
+      message: `${createdVoters.length} voters uploaded successfully and emails sent`,
       voters: createdVoters,
     });
   } catch (error) {
-    if (req.file?.path) fs.unlinkSync(req.file.path); // Cleanup on error
+    if (req.file?.path) fs.unlinkSync(req.file.path);
     console.error(error.message);
     res.status(500).json({ message: error.message });
   }
