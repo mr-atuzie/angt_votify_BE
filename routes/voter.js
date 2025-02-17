@@ -13,6 +13,7 @@ const {
   loginVoter,
   castVote,
   addMultipleVoter,
+  searchVoterByFullName,
 } = require("../controllers/voter");
 
 const storage = multer.diskStorage({
@@ -34,6 +35,8 @@ router.post("/cast-vote", castVote);
 
 router.get("/", protect, getVoters);
 router.get("/election/:electionId", protect, getVotersByElectionId);
+
+router.get("/election/:electionId/search", protect, searchVoterByFullName);
 
 router.post("/login", loginVoter);
 

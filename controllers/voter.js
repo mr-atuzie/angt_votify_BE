@@ -10,6 +10,14 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+function sanitizeValue(value) {
+  if (typeof value === "string") {
+    // Remove surrounding quotes if present
+    return value.replace(/^['"]|['"]$/g, "").trim();
+  }
+  return value;
+}
+
 const createVoter = asyncHandler(async (req, res) => {
   const { fullName, email, phone, electionId } = req.body;
 
@@ -448,11 +456,182 @@ const createVoterNew = asyncHandler(async (req, res) => {
 //   }
 // });
 
+// const addMultipleVoter = asyncHandler(async (req, res) => {
+//   const { electionId } = req.params;
+//   const user = req.user;
+
+//   console.log("new wngine");
+
+//   try {
+//     const election = await Election.findById(electionId);
+//     if (!election) {
+//       return res.status(404).json({ message: "Election not found" });
+//     }
+
+//     const { voterLimit } = user.subscription;
+//     const currentVoters = await Voter.countDocuments({ electionId });
+
+//     if (currentVoters >= voterLimit) {
+//       return res
+//         .status(403)
+//         .json({ message: "Voter limit reached for this election" });
+//     }
+
+//     const filePath = req.file.path;
+//     const ext = path.extname(req.file.originalname).toLowerCase();
+//     if (ext !== ".csv") {
+//       fs.unlinkSync(filePath);
+//       return res.status(400).json({ message: "Unsupported file format" });
+//     }
+
+//     const csvData = fs.readFileSync(filePath, "utf-8");
+//     const workbook = xlsx.read(csvData, { type: "string" });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     console.log("Headers:", Object.keys(sheetData[0]));
+//     console.log("Row Data:", sheetData.slice(1)); // Logs all rows except the header
+
+//     // After trimming and normalizing
+//     const votersToAdd = sheetData
+//       .map((row) => {
+//         console.log("Row Data:", row); // Log each row to debug
+
+//         const name = sanitizeValue(row.name);
+//         const phone = sanitizeValue(row.phone);
+//         const email = sanitizeValue(row.email);
+//         // Log after trimming to check the values
+//         console.log(
+//           "Trimmed Values - Name:",
+//           name,
+//           "Phone:",
+//           phone,
+//           "Email:",
+//           email
+//         );
+
+//         // If any field is missing or invalid, return null for this row
+//         if (!name || !phone || !email) {
+//           console.log("Skipping invalid row:", row); // Log the skipped row for debugging
+//           return null;
+//         }
+
+//         // Return the voter object if all fields are valid
+//         return {
+//           fullName: name,
+//           phone,
+//           email,
+//           electionId,
+//           verificationCode: Math.random()
+//             .toString(36)
+//             .substring(2, 8)
+//             .toUpperCase(),
+//         };
+//       })
+//       .filter(Boolean);
+
+//     console.log("Voters to add:", votersToAdd); // Log final votersToAdd array
+
+//     if (!votersToAdd.length) {
+//       fs.unlinkSync(filePath);
+//       return res
+//         .status(400)
+//         .json({ message: "No valid or new voters to upload." });
+//     }
+
+//     // Check for existing phone numbers and emails
+//     const existingVoters = await Voter.find({
+//       electionId,
+//       $or: [
+//         { phone: { $in: votersToAdd.map((voter) => voter.phone) } },
+//         { email: { $in: votersToAdd.map((voter) => voter.email) } },
+//       ],
+//     }).select("phone email");
+
+//     const existingPhones = existingVoters.map((voter) => voter.phone);
+//     const existingEmails = existingVoters.map((voter) => voter.email);
+
+//     const newVoters = votersToAdd.filter(
+//       (voter) =>
+//         !existingPhones.includes(voter.phone) &&
+//         !existingEmails.includes(voter.email)
+//     );
+
+//     if (!newVoters.length) {
+//       fs.unlinkSync(filePath);
+//       return res
+//         .status(400)
+//         .json({ message: "All voters in the file are already registered." });
+//     }
+
+//     const createdVoters = await Voter.insertMany(newVoters);
+
+//     await Election.findByIdAndUpdate(
+//       electionId,
+//       {
+//         $addToSet: {
+//           voters: { $each: createdVoters.map((voter) => voter._id) },
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     fs.unlinkSync(filePath);
+
+//     for (const newVoter of createdVoters) {
+//       const votingLink = `${process.env.CLIENT_URL}/voting/${electionId}/voter/${newVoter._id}/login`;
+//       const subject = `You're Registered to Vote in ${election.title} Election`;
+//       const send_to = newVoter.email;
+//       const send_from = process.env.EMAIL_USER;
+//       const message = `
+//         <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+//           <div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 5px; overflow: hidden;">
+//             <div style="background-color: #4A90E2; padding: 20px; text-align: center; color: #ffffff;">
+//               <h1 style="margin: 0;">Election Notification</h1>
+//             </div>
+//             <div style="padding: 20px;">
+//               <p style="text-transform: capitalize;">Dear <strong>${newVoter.fullName}</strong>,</p>
+//               <p>Welcome to the <strong>${election.title} Election</strong>. Below are your voter credentials:</p>
+//               <p><strong>Voter ID:</strong> ${newVoter._id}</p>
+//               <p><strong>Voter Code:</strong> ${newVoter.verificationCode}</p>
+//               <p style="margin: 20px 0; text-align: center;">
+//                 <a href="${votingLink}" style="display: inline-block; background-color: #4A90E2; color: #ffffff; padding: 12px 20px; font-size: 16px; text-decoration: none; border-radius: 5px;">
+//                   Go to Voting Portal
+//                 </a>
+//               </p>
+//               <p>If you have any questions, please contact the election organizer.</p>
+//               <p>Best regards,<br>Election Team</p>
+//             </div>
+//             <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+//               <p style="margin: 0;">&copy; 2024 Election System. All rights reserved.</p>
+//             </div>
+//           </div>
+//         </body>`;
+
+//       try {
+//         await sendEmail(subject, message, send_to, send_from);
+//       } catch (error) {
+//         console.log(`Failed to send email to ${send_to}:`, error);
+//       }
+//     }
+
+//     res.status(201).json({
+//       message: `${createdVoters.length} voters uploaded successfully and emails sent`,
+//       voters: createdVoters,
+//     });
+//   } catch (error) {
+//     if (req.file?.path) fs.unlinkSync(req.file.path);
+//     console.error(error.message);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 const addMultipleVoter = asyncHandler(async (req, res) => {
   const { electionId } = req.params;
   const user = req.user;
 
   try {
+    // Retrieve the election by ID
     const election = await Election.findById(electionId);
     if (!election) {
       return res.status(404).json({ message: "Election not found" });
@@ -461,12 +640,14 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
     const { voterLimit } = user.subscription;
     const currentVoters = await Voter.countDocuments({ electionId });
 
+    // Check if voter limit is reached
     if (currentVoters >= voterLimit) {
       return res
         .status(403)
         .json({ message: "Voter limit reached for this election" });
     }
 
+    // Validate file format (CSV)
     const filePath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase();
     if (ext !== ".csv") {
@@ -474,17 +655,59 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Unsupported file format" });
     }
 
+    // Read and parse the CSV file
     const csvData = fs.readFileSync(filePath, "utf-8");
     const workbook = xlsx.read(csvData, { type: "string" });
     const sheetName = workbook.SheetNames[0];
-    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    let sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    const votersToAdd = sheetData
-      .map((row) => {
-        const name = row.name?.trim();
-        const phone = row.phone ? String(row.phone).trim() : null;
-        const email = row.email ? row.email.trim() : null;
-        if (!name || !phone || !email) return null;
+    console.log({ sheetData });
+
+    if (!sheetData.length) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ message: "CSV file is empty." });
+    }
+
+    // Normalize headers to lowercase
+    const normalizedSheetData = sheetData.map((row) => {
+      let formattedRow = {};
+      Object.keys(row).forEach((key) => {
+        formattedRow[key.trim().toLowerCase()] = row[key];
+      });
+      return formattedRow;
+    });
+
+    console.log("Normalized Data:", normalizedSheetData);
+
+    // Identify headers dynamically (case-insensitive)
+    const firstRow = normalizedSheetData[0];
+    const nameKey = Object.keys(firstRow).find((key) => key.includes("name"));
+    const phoneKey = Object.keys(firstRow).find((key) => key.includes("phone"));
+    const emailKey = Object.keys(firstRow).find((key) => key.includes("email"));
+
+    if (!nameKey || !phoneKey || !emailKey) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({
+        message: "CSV is missing required headers (Name, Phone, Email).",
+      });
+    }
+
+    // Process the rows and sanitize values
+    const votersToAdd = normalizedSheetData
+      .map((row, index) => {
+        const name = row[nameKey] ? String(row[nameKey]).trim() : null;
+        const phone = row[phoneKey] ? String(row[phoneKey]).trim() : null;
+        const email = row[emailKey] ? String(row[emailKey]).trim() : null;
+
+        if (!name || !phone || !email) {
+          console.log(`Invalid data in row ${index + 1}:`, {
+            name,
+            phone,
+            email,
+          });
+          return null;
+        }
+
         return {
           fullName: name,
           phone,
@@ -498,11 +721,11 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       })
       .filter(Boolean);
 
+    console.log({ votersToAdd });
+
     if (!votersToAdd.length) {
       fs.unlinkSync(filePath);
-      return res
-        .status(400)
-        .json({ message: "No valid or new voters to upload." });
+      return res.status(400).json({ message: "No valid voters to upload." });
     }
 
     // Check for existing phone numbers and emails
@@ -517,6 +740,7 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
     const existingPhones = existingVoters.map((voter) => voter.phone);
     const existingEmails = existingVoters.map((voter) => voter.email);
 
+    // Filter out already registered voters
     const newVoters = votersToAdd.filter(
       (voter) =>
         !existingPhones.includes(voter.phone) &&
@@ -527,11 +751,13 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       fs.unlinkSync(filePath);
       return res
         .status(400)
-        .json({ message: "All voters in the file are already registered." });
+        .json({ message: "All voters are already registered." });
     }
 
+    // Insert new voters
     const createdVoters = await Voter.insertMany(newVoters);
 
+    // Update the Election document with new voters
     await Election.findByIdAndUpdate(
       electionId,
       {
@@ -542,13 +768,13 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
       { new: true }
     );
 
+    // Remove the uploaded file after processing
     fs.unlinkSync(filePath);
 
-    for (const newVoter of createdVoters) {
+    // Send email notifications for each new voter
+    const emailPromises = createdVoters.map(async (newVoter) => {
       const votingLink = `${process.env.CLIENT_URL}/voting/${electionId}/voter/${newVoter._id}/login`;
       const subject = `You're Registered to Vote in ${election.title} Election`;
-      const send_to = newVoter.email;
-      const send_from = process.env.EMAIL_USER;
       const message = `
         <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
           <div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 5px; overflow: hidden;">
@@ -575,19 +801,26 @@ const addMultipleVoter = asyncHandler(async (req, res) => {
         </body>`;
 
       try {
-        await sendEmail(subject, message, send_to, send_from);
+        await sendEmail(
+          subject,
+          message,
+          newVoter.email,
+          process.env.EMAIL_USER
+        );
       } catch (error) {
-        console.log(`Failed to send email to ${send_to}:`, error);
+        console.log(`Failed to send email to ${newVoter.email}:`, error);
       }
-    }
+    });
+
+    await Promise.all(emailPromises);
 
     res.status(201).json({
-      message: `${createdVoters.length} voters uploaded successfully and emails sent`,
+      message: `${createdVoters.length} voters uploaded successfully and emails sent.`,
       voters: createdVoters,
     });
   } catch (error) {
     if (req.file?.path) fs.unlinkSync(req.file.path);
-    console.error(error.message);
+    console.error("Error:", error.message);
     res.status(500).json({ message: error.message });
   }
 });
@@ -689,6 +922,27 @@ const verifyVoter = asyncHandler(async (req, res) => {
 
 const getVoters = asyncHandler(async (req, res) => {
   const voters = await Voter.find().populate("electionId", "electionName");
+  res.status(200).json({ voters });
+});
+
+const searchVoterByFullName = asyncHandler(async (req, res) => {
+  const { fullName } = req.query; // Get the full name from query parameters
+  const { electionId } = req.params;
+
+  if (!fullName) {
+    return res.status(400).json({ message: "Full name is required" });
+  }
+
+  // Search for users whose fullName matches (case-insensitive)
+  const voters = await Voter.find({
+    electionId,
+    fullName: { $regex: new RegExp(fullName, "i") },
+  }).populate("electionId", "electionName");
+
+  if (voters.length === 0) {
+    return res.status(404).json({ message: "No users found" });
+  }
+
   res.status(200).json({ voters });
 });
 
@@ -871,7 +1125,7 @@ module.exports = {
   updateVoter,
   deleteVoter,
   getVotersByElectionId,
-
+  searchVoterByFullName,
   createVoterAndSendSMS,
   createVoterNew,
   loginVoter,
