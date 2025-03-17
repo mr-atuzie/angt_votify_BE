@@ -340,12 +340,16 @@ const searchUserByFullName = asyncHandler(async (req, res) => {
 
 // Subscribe
 const subscribe = asyncHandler(async (req, res) => {
-  const { subscriptionPlan, flutterwavePaymentReciept } = req.body;
+  const { subscriptionPlan } = req.body;
 
   if (!subscriptionPlan) {
     res.status(400);
     throw new Error("Please select a plan");
   }
+
+  console.log(subscriptionPlan);
+  console.log("Subribe");
+  console.log({ test: req.body });
 
   // Check if the user exists
   const user = await User.findById(req.user._id);
@@ -388,7 +392,7 @@ const subscribe = asyncHandler(async (req, res) => {
             <li><strong>Email:</strong> ${user.email}</li>
             <li><strong>Plan Type:</strong> ${planType}</li>           
             <li><strong>Price:</strong> ${planPrice} USD</li>           
-            <li><strong>Flutterwave Ref:</strong> ${flutterwavePaymentReciept}</li>
+           
           </ul>
           
           <p style="font-size: 16px;">Please verify the subscription information and take any necessary actions.</p>
@@ -407,7 +411,7 @@ const subscribe = asyncHandler(async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "User subscription updated successfully", user });
+      .json({ message: "subscription updated successfully", user });
   } catch (error) {
     res.status(500);
     throw new Error("Email not sent. Please try again.");
