@@ -277,6 +277,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "User profile updated successfully", user });
 });
 
+//
 const updateUserPassword = asyncHandler(async (req, res) => {
   const { password } = req.body;
 
@@ -314,6 +315,7 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "User account deleted successfully" });
 });
 
+//
 const searchUserByFullName = asyncHandler(async (req, res) => {
   const { fullName } = req.query; // Get the full name from query parameters
 
@@ -338,7 +340,7 @@ const searchUserByFullName = asyncHandler(async (req, res) => {
   }
 });
 
-// Subscribe
+//Subscribe
 const subscribe = asyncHandler(async (req, res) => {
   const { subscriptionPlan } = req.body;
 
@@ -346,10 +348,6 @@ const subscribe = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Please select a plan");
   }
-
-  console.log(subscriptionPlan);
-  console.log("Subribe");
-  console.log({ test: req.body });
 
   // Check if the user exists
   const user = await User.findById(req.user._id);
@@ -359,12 +357,20 @@ const subscribe = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  // Update user subscription details
-  user.subscription.electionsAllowed += subscriptionPlan.electionsAllowed;
-  user.subscription.voterLimit += subscriptionPlan.voterLimit;
+  // Set subscription start and end date
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setMonth(startDate.getMonth() + 1); // Add 1 month
 
-  const planType = subscriptionPlan.tier;
-  const planPrice = subscriptionPlan.amount;
+  // Update user subscription details
+  user.subscription = {
+    ...user.subscription,
+    tier: subscriptionPlan.tier,
+    voterLimit: subscriptionPlan.voterLimit,
+    electionsAllowed: subscriptionPlan.electionsAllowed,
+    startDate,
+    endDate,
+  };
 
   await user.save();
 
@@ -376,29 +382,24 @@ const subscribe = asyncHandler(async (req, res) => {
   const adminMessage = `
     <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
       <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        <!-- Header Section -->
         <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
           <h1 style="margin: 0; font-size: 24px;">Subscription Update</h1>
         </div>
         
-        <!-- Content Section -->
         <div style="padding: 20px; color: #333333;">
           <p style="font-size: 16px; margin-bottom: 20px;">Hello Admin,</p>
-          
           <p style="font-size: 16px; margin-bottom: 20px;">A user has updated their subscription. Here are the details:</p>
-          
           <ul style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 20px; padding: 0;">
             <li><strong>User Name:</strong> ${user.name}</li>
             <li><strong>Email:</strong> ${user.email}</li>
-            <li><strong>Plan Type:</strong> ${planType}</li>           
-            <li><strong>Price:</strong> ${planPrice} USD</li>           
-           
+            <li><strong>Plan Type:</strong> ${subscriptionPlan.tier}</li>
+            <li><strong>Price:</strong> ${subscriptionPlan.amount} USD</li>
+            <li><strong>Start Date:</strong> ${startDate.toDateString()}</li>
+            <li><strong>End Date:</strong> ${endDate.toDateString()}</li>
           </ul>
-          
           <p style="font-size: 16px;">Please verify the subscription information and take any necessary actions.</p>
         </div>
         
-        <!-- Footer Section -->
         <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
           <p style="margin: 0; font-size: 12px;">&copy; 2024 Your App Name. All rights reserved.</p>
         </div>
@@ -408,16 +409,91 @@ const subscribe = asyncHandler(async (req, res) => {
 
   try {
     await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
-
     res
       .status(200)
-      .json({ message: "subscription updated successfully", user });
+      .json({ message: "Subscription updated successfully", user });
   } catch (error) {
     res.status(500);
     throw new Error("Email not sent. Please try again.");
   }
 });
 
+// const subscribe = asyncHandler(async (req, res) => {
+//   const { subscriptionPlan } = req.body;
+
+//   if (!subscriptionPlan) {
+//     res.status(400);
+//     throw new Error("Please select a plan");
+//   }
+
+//   // Check if the user exists
+//   const user = await User.findById(req.user._id);
+
+//   if (!user) {
+//     res.status(404);
+//     throw new Error("User not found");
+//   }
+
+//   // Update user subscription details
+//   user.subscription.electionsAllowed += subscriptionPlan.electionsAllowed;
+//   user.subscription.voterLimit += subscriptionPlan.voterLimit;
+
+//   const planType = subscriptionPlan.tier;
+//   const planPrice = subscriptionPlan.amount;
+
+//   await user.save();
+
+//   // Send email with user and subscription info
+//   const admin_MsgSubject = "Subscription Updated Successfully";
+//   const admin_SendTo = "Idrisoluwabunmi@gmail.com";
+//   const send_from = process.env.EMAIL_USER;
+
+//   const adminMessage = `
+//     <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+//       <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+//         <!-- Header Section -->
+//         <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
+//           <h1 style="margin: 0; font-size: 24px;">Subscription Update</h1>
+//         </div>
+
+//         <!-- Content Section -->
+//         <div style="padding: 20px; color: #333333;">
+//           <p style="font-size: 16px; margin-bottom: 20px;">Hello Admin,</p>
+
+//           <p style="font-size: 16px; margin-bottom: 20px;">A user has updated their subscription. Here are the details:</p>
+
+//           <ul style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 20px; padding: 0;">
+//             <li><strong>User Name:</strong> ${user.name}</li>
+//             <li><strong>Email:</strong> ${user.email}</li>
+//             <li><strong>Plan Type:</strong> ${planType}</li>
+//             <li><strong>Price:</strong> ${planPrice} USD</li>
+
+//           </ul>
+
+//           <p style="font-size: 16px;">Please verify the subscription information and take any necessary actions.</p>
+//         </div>
+
+//         <!-- Footer Section -->
+//         <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+//           <p style="margin: 0; font-size: 12px;">&copy; 2024 Your App Name. All rights reserved.</p>
+//         </div>
+//       </div>
+//     </body>
+//   `;
+
+//   try {
+//     await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
+
+//     res
+//       .status(200)
+//       .json({ message: "subscription updated successfully", user });
+//   } catch (error) {
+//     res.status(500);
+//     throw new Error("Email not sent. Please try again.");
+//   }
+// });
+
+//getElectionByUser
 const getElectionsByUser = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
@@ -433,6 +509,7 @@ const getElectionsByUser = asyncHandler(async (req, res) => {
   res.status(200).json(elections);
 });
 
+//
 const userDashboard = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
@@ -475,6 +552,7 @@ const userDashboard = asyncHandler(async (req, res) => {
   });
 });
 
+//
 const loginStatus = asyncHandler(async (req, res) => {
   const token = req.cookies.token;
 
@@ -492,6 +570,7 @@ const loginStatus = asyncHandler(async (req, res) => {
   });
 });
 
+//
 const logout = asyncHandler(async (req, res) => {
   res.cookie("token", "", {
     path: "/",
@@ -504,6 +583,7 @@ const logout = asyncHandler(async (req, res) => {
   res.status(200).json("Successfully Logged Out");
 });
 
+//
 const forgetPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
@@ -593,6 +673,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
   }
 });
 
+//
 const resetPassword = asyncHandler(async (req, res) => {
   const { resetToken } = req.params;
   const { password } = req.body;
