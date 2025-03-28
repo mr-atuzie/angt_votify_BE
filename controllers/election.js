@@ -23,7 +23,21 @@ const createElection = asyncHandler(async (req, res) => {
   }
 
   const user = req.user;
-  const { electionsAllowed } = user.subscription;
+  const {
+    electionsAllowed,
+    startDate: subscriptionStartDate,
+    endDate: subscriptionEndDate,
+  } = user.subscription;
+
+  const today = new Date();
+  if (
+    today < new Date(subscriptionStartDate) ||
+    today > new Date(subscriptionEndDate)
+  ) {
+    return res
+      .status(403)
+      .json({ message: "Your subscription is inactive or expired." });
+  }
 
   // Validate subscription and election limits
   const userElections = await Election.countDocuments({ user: user._id });
