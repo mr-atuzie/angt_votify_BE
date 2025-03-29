@@ -16,6 +16,7 @@ const {
   subscribe,
   verifyEmail,
   searchUserByFullName,
+  contactUs,
 } = require("../controllers/user");
 const { protect } = require("../middlewares/authMiddleware");
 
@@ -29,6 +30,8 @@ router.post("/reset-password/:resetToken", resetPassword);
 router.get("/logout", logout);
 
 router.get("/loginStatus", loginStatus);
+
+router.post("/contact-us", contactUs);
 
 // Protected routes (must be authenticated)
 router.get("/profile", protect, getUserDetails);

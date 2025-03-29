@@ -407,6 +407,8 @@ const subscribe = asyncHandler(async (req, res) => {
     </body>
   `;
 
+  console.log(user.subscription);
+
   try {
     await sendEmail(admin_MsgSubject, adminMessage, admin_SendTo, send_from);
     res
@@ -725,6 +727,51 @@ const resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+const contactUs = asyncHandler(async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    res.status(400);
+    throw new Error("All fields are required");
+  }
+
+  const adminEmail = "hello@2ruevote.com";
+  // const adminEmail = "rexatuzie@gmail.com";
+  const sendFrom = process.env.EMAIL_USER;
+  const subject = "New Contact Message";
+
+  const emailContent = `
+    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+      <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        <div style="background-color: #1e40af; padding: 20px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 24px;">New Contact Form Submission</h1>
+        </div>
+        <div style="padding: 20px; color: #333333;">
+          <p style="font-size: 16px;">Hello Admin,</p>
+          <p style="font-size: 16px;">You have received a new message:</p>
+          <ul style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 20px; padding: 0;">
+            <li><strong>Name:</strong> ${name}</li>
+            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Message:</strong> ${message}</li>
+          </ul>
+          <p style="font-size: 16px;">Please respond as soon as possible.</p>
+        </div>
+        <div style="background-color: #f4f4f4; padding: 10px; text-align: center; color: #777777;">
+          <p style="margin: 0; font-size: 12px;">&copy; 2024 2ruevote. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+  `;
+
+  try {
+    await sendEmail(subject, emailContent, adminEmail, sendFrom, email);
+    res.status(200).json({ message: "Message sent successfully" });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Email not sent. Please try again.");
+  }
+});
+
 module.exports = {
   registerUser,
   loginUser,
@@ -747,4 +794,6 @@ module.exports = {
 
   forgetPassword,
   resetPassword,
+
+  contactUs,
 };

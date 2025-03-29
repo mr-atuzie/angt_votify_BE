@@ -67,7 +67,7 @@ const voterSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, "Please enter your phone number"],
+      // required: [true, "Please enter your phone number"],
       trim: true,
       // unique: true, // To avoid duplicate phone numbers
     },

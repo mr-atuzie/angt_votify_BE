@@ -16,6 +16,8 @@ const createElection = asyncHandler(async (req, res) => {
     throw new Error("Please enter all required fields");
   }
 
+  console.log("localhost test");
+
   // Validate date range
   if (new Date(startDate) >= new Date(endDate)) {
     res.status(400);
@@ -29,14 +31,15 @@ const createElection = asyncHandler(async (req, res) => {
     endDate: subscriptionEndDate,
   } = user.subscription;
 
+  console.log({ subscriptionEndDate, subscriptionStartDate });
+
   const today = new Date();
   if (
     today < new Date(subscriptionStartDate) ||
     today > new Date(subscriptionEndDate)
   ) {
-    return res
-      .status(403)
-      .json({ message: "Your subscription is inactive or expired." });
+    res.status(400);
+    throw new Error("Your subscription is inactive or expired.");
   }
 
   // Validate subscription and election limits
